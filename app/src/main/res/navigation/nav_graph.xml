@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/navigation_invoice">
+
+    <fragment
+        android:id="@+id/navigation_invoice"
+        android:name="com.example.luluuu.ui.invoice.InvoiceFragment"
+        android:label="@string/invoice">
+        <action
+            android:id="@+id/action_invoice_to_history"
+            app:destination="@id/navigation_invoice_history" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_invoice_history"
+        android:name="com.example.luluuu.ui.invoice.InvoiceHistoryFragment"
+        android:label="@string/invoice_history" />
+
+    <fragment
+        android:id="@+id/navigation_stock"
+        android:name="com.example.luluuu.ui.stock.StockFragment"
+        android:label="@string/stock" />
+
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.luluuu.ui.settings.SettingsFragment"
+        android:label="@string/settings" />
+
+</navigation> 

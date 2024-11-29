@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">බිල්පත් මුද්රණය</string>
+    <string name="customer_name">පාරිභෝගිකයාගේ නම</string>
+    <string name="product_name">භාණ්ඩයේ නම</string>
+    <string name="price">මිල (රු.)</string>
+    <string name="quantity">ප්‍රමාණය</string>
+    <string name="add_product">භාණ්ඩයක් එකතු කරන්න</string>
+    <string name="generate_invoice">බිල්පත සාදන්න</string>
+    <string name="remove_product">භාණ්ඩය ඉවත් කරන්න</string>
+    <string name="total_amount">එකතුව: රු. %s</string>
+    <string name="invoice_header">බිල්පත</string>
+    <string name="customer">පාරිභෝගිකයා</string>
+    <string name="item_details">භාණ්ඩ විස්තර</string>
+    <string name="thank_you">ස්තූතියි!</string>
+</resources> 
