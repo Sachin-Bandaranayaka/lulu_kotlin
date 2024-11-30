@@ -12,7 +12,7 @@ data class Stock(
     @get:Exclude  // Exclude from Firestore serialization
     var id: Long = 0,
     
-    @get:DocumentId  // This field will store the Firestore document ID
+    @get:Exclude  // Exclude from Firestore serialization
     var firebaseId: String = "",
     
     var name: String = "",

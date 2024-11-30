@@ -6,6 +6,7 @@ import com.example.luluuu.model.Stock
 import com.example.luluuu.model.StockHistory
 import java.util.Date
 import kotlinx.coroutines.flow.Flow
+import android.util.Log
 
 class StockRepository(
     private val stockDao: StockDao,
@@ -27,7 +28,8 @@ class StockRepository(
                 action = "CREATE"
             )
         )
-        firebaseRepository.addStock(stock.copy(id = stockId))
+        val firebaseId = firebaseRepository.addStock(stock.copy(id = stockId))
+        stockDao.update(stock.copy(id = stockId, firebaseId = firebaseId))
     }
 
     suspend fun update(stock: Stock) {
@@ -47,22 +49,31 @@ class StockRepository(
                 )
             )
         }
-        firebaseRepository.updateStock(stock.id.toString(), stock)
+        firebaseRepository.updateStock(stock.firebaseId, stock)
     }
 
     suspend fun delete(stock: Stock) {
-        stockHistoryDao.insert(
-            StockHistory(
-                stockId = stock.id,
-                date = Date(),
-                oldQuantity = stock.quantity,
-                newQuantity = 0,
-                oldPrice = stock.price,
-                newPrice = 0.0,
-                action = "DELETE"
+        try {
+            if (stock.firebaseId.isNotBlank()) {
+                firebaseRepository.deleteStock(stock.firebaseId)
+            }
+            
+            stockHistoryDao.insert(
+                StockHistory(
+                    stockId = stock.id,
+                    date = Date(),
+                    oldQuantity = stock.quantity,
+                    newQuantity = 0,
+                    oldPrice = stock.price,
+                    newPrice = 0.0,
+                    action = "DELETE"
+                )
             )
-        )
-        stockDao.delete(stock)
-        firebaseRepository.deleteStock(stock.id.toString())
+            
+            stockDao.delete(stock)
+        } catch (e: Exception) {
+            Log.e("StockRepository", "Error deleting stock", e)
+            throw e
+        }
     }
 } 

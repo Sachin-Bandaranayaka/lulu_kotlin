@@ -32,16 +32,35 @@ class FirebaseRepository {
     }
 
     suspend fun deleteStock(stockId: String) {
+        if (stockId.isBlank()) {
+            return // Skip deletion if no valid Firebase ID
+        }
         stocksCollection.document(stockId).delete().await()
     }
 
     suspend fun addStock(stock: Stock): String {
-        val docRef = stocksCollection.add(stock).await()
+        val stockData = hashMapOf(
+            "name" to stock.name,
+            "price" to stock.price,
+            "quantity" to stock.quantity,
+            "description" to stock.description
+        )
+        val docRef = stocksCollection.add(stockData).await()
         return docRef.id
     }
 
     suspend fun updateStock(stockId: String, stock: Stock) {
-        stocksCollection.document(stockId).set(stock).await()
+        if (stockId.isBlank()) {
+            return // Skip update if no valid Firebase ID
+        }
+        
+        val stockData = hashMapOf(
+            "name" to stock.name,
+            "price" to stock.price,
+            "quantity" to stock.quantity,
+            "description" to stock.description
+        )
+        stocksCollection.document(stockId).set(stockData).await()
     }
 
     fun searchStocksByName(query: String): Flow<List<Stock>> = flow {
@@ -52,7 +71,7 @@ class FirebaseRepository {
             .await()
         
         val stocks = snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
+            doc.toObject(Stock::class.java)?.copy(firebaseId = doc.id)
         }
         emit(stocks)
     }
@@ -64,7 +83,7 @@ class FirebaseRepository {
             .await()
         
         val stocks = snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
+            doc.toObject(Stock::class.java)?.copy(firebaseId = doc.id)
         }
         emit(stocks)
     }
