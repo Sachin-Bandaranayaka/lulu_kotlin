@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -91,4 +92,11 @@ dependencies {
 
     // Add MPAndroidChart dependency
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Add Firebase BoM (Bill of Materials)
+    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
+    
+    // Add Firebase dependencies
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
 }

@@ -7,8 +7,8 @@ import androidx.room.PrimaryKey
 data class Stock(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    var name: String,
-    var price: Double,
-    var quantity: Int,
+    var name: String = "",
+    var price: Double = 0.0,
+    var quantity: Int = 0,
     var description: String = ""
 ) 

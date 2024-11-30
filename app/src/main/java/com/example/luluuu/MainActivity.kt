@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
@@ -17,10 +18,20 @@ import com.example.luluuu.databinding.ActivityMainBinding
 import java.io.IOException
 import java.io.OutputStream
 import java.util.UUID
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
+import com.example.luluuu.repository.FirebaseRepository
+import com.example.luluuu.model.Stock
+import com.example.luluuu.viewmodel.StockViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
+    private val firebaseRepository = FirebaseRepository()
     
     companion object {
         private const val PRINTER_MAC_ADDRESS = "60:6E:41:76:9B:A0"
@@ -67,6 +78,10 @@ class MainActivity : AppCompatActivity() {
 
         // Connect to the printer
         connectToPrinter()
+
+        // Test Firebase connection
+        testFirebaseConnection()
+        testStockSync()
     }
 
     private fun connectToPrinter() {
@@ -145,5 +160,62 @@ class MainActivity : AppCompatActivity() {
                 throw IOException("Printer not connected")
             }
         } ?: throw IOException("Printer not connected")
+    }
+
+    private fun testFirebaseConnection() {
+        lifecycleScope.launch {
+            try {
+                firebaseRepository.getAllStocks().collectLatest { stocks: List<Stock> ->
+                    Log.d("Firebase", "Stocks: $stocks")
+                }
+            } catch (e: Exception) {
+                Log.e("Firebase", "Error fetching stocks: ${e.message}")
+                Toast.makeText(
+                    this@MainActivity,
+                    "Firebase error: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun testStockSync() {
+        try {
+            // Test adding a stock through Firebase directly
+            val db = Firebase.firestore
+            val testStock = hashMapOf(
+                "name" to "Test Product",
+                "price" to 99.99,
+                "quantity" to 10,
+                "description" to "Test Description"
+            )
+
+            db.collection("stocks")
+                .add(testStock)
+                .addOnSuccessListener { documentReference ->
+                    Log.d("Firebase", "Stock added with ID: ${documentReference.id}")
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Test stock added successfully!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firebase", "Error adding stock", e)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Failed to add test stock: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+        } catch (e: Exception) {
+            Log.e("Firebase", "Error in testStockSync", e)
+            Toast.makeText(
+                this@MainActivity,
+                "Test sync failed: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 } 

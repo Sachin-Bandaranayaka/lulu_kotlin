@@ -10,7 +10,7 @@ interface StockDao {
     fun getAllStocks(): Flow<List<Stock>>
 
     @Insert
-    suspend fun insert(stock: Stock)
+    suspend fun insert(stock: Stock): Long
 
     @Update
     suspend fun update(stock: Stock)

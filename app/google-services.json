@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "940331730872",
+    "project_id": "lulu-54a03",
+    "storage_bucket": "lulu-54a03.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:940331730872:android:1539adb4fb3e23130bb14d",
+        "android_client_info": {
+          "package_name": "com.example.luluuu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi-BUSHSQBevjusanFHjerk-lOpiuzrh8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
