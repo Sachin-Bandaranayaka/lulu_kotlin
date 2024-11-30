@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -36,6 +37,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PRINTER_MAC_ADDRESS = "60:6E:41:76:9B:A0"
         private const val SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
+        private const val BLUETOOTH_PERMISSION_REQUEST_CODE = 1
+        
         private var _bluetoothSocket: BluetoothSocket? = null
         private var _outputStream: OutputStream? = null
 
@@ -76,8 +79,8 @@ class MainActivity : AppCompatActivity() {
         // Setup Bottom Navigation
         binding.bottomNavView.setupWithNavController(navController)
 
-        // Connect to the printer
-        connectToPrinter()
+        // Check and request permissions before connecting to printer
+        checkBluetoothPermissions()
 
         // Test Firebase connection
         testFirebaseConnection()
@@ -85,7 +88,56 @@ class MainActivity : AppCompatActivity() {
         testFirebaseOperations()
     }
 
-    private fun connectToPrinter() {
+    private fun checkBluetoothPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            when {
+                checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permissions are already granted, proceed with connection
+                    connectToPrinter()
+                }
+                else -> {
+                    // Request permissions
+                    requestPermissions(
+                        arrayOf(
+                            android.Manifest.permission.BLUETOOTH_CONNECT,
+                            android.Manifest.permission.BLUETOOTH_SCAN
+                        ),
+                        BLUETOOTH_PERMISSION_REQUEST_CODE
+                    )
+                }
+            }
+        } else {
+            // For Android 11 and below
+            connectToPrinter()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            BLUETOOTH_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && 
+                    grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    // Permissions granted, proceed with connection
+                    connectToPrinter()
+                } else {
+                    // Permissions denied
+                    Toast.makeText(
+                        this,
+                        "Bluetooth permissions are required for printing",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    fun connectToPrinter() {
         try {
             val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val bluetoothAdapter = bluetoothManager.adapter
@@ -138,29 +190,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun printText(text: String) {
-        bluetoothSocket?.let { socket ->
-            if (socket.isConnected) {
-                try {
+        try {
+            bluetoothSocket?.let { socket ->
+                if (socket.isConnected) {
                     val outputStream = socket.outputStream
-                    
-                    // Initialize printer
-                    outputStream.write(byteArrayOf(0x1B, 0x40))
-                    outputStream.write(byteArrayOf(0x1B, 0x21, 0x00))
-                    
-                    // Write text
-                    outputStream.write(text.toByteArray())
-                    
-                    // Feed and cut
-                    outputStream.write(byteArrayOf(0x0A, 0x0A, 0x0A))
-                    outputStream.write(byteArrayOf(0x1D, 0x56, 0x41, 0x00))
-                    outputStream.flush()
-                } catch (e: IOException) {
-                    throw e
+                    try {
+                        // Initialize printer
+                        outputStream.write(byteArrayOf(0x1B, 0x40))  // Initialize printer
+                        outputStream.write(byteArrayOf(0x1B, 0x21, 0x00))  // Normal text
+                        
+                        // Set text alignment to center
+                        outputStream.write(byteArrayOf(0x1B, 0x61, 0x01))
+                        
+                        // Convert text to bytes with proper encoding
+                        val textBytes = text.toByteArray(Charsets.UTF_8)
+                        outputStream.write(textBytes)
+                        
+                        // Reset alignment to left
+                        outputStream.write(byteArrayOf(0x1B, 0x61, 0x00))
+                        
+                        // Feed paper
+                        outputStream.write(byteArrayOf(0x0A, 0x0A, 0x0A))
+                        
+                        // Cut paper (if supported)
+                        try {
+                            outputStream.write(byteArrayOf(0x1D, 0x56, 0x41, 0x10))
+                        } catch (e: Exception) {
+                            Log.w("MainActivity", "Paper cut not supported: ${e.message}")
+                        }
+                        
+                        outputStream.flush()
+                        
+                        // Log success
+                        Log.d("MainActivity", "Print successful")
+                        
+                    } catch (e: IOException) {
+                        Log.e("MainActivity", "Error during printing: ${e.message}")
+                        e.printStackTrace()
+                        throw IOException("Failed to print: ${e.message}")
+                    }
+                } else {
+                    Log.e("MainActivity", "Printer not connected")
+                    throw IOException("Printer not connected")
                 }
-            } else {
-                throw IOException("Printer not connected")
+            } ?: run {
+                Log.e("MainActivity", "Bluetooth socket is null")
+                throw IOException("Printer not connected (null socket)")
             }
-        } ?: throw IOException("Printer not connected")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Printing failed: ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
     }
 
     private fun testFirebaseConnection() {

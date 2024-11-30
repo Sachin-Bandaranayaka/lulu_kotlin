@@ -23,10 +23,15 @@ import com.example.luluuu.databinding.DialogProductSelectionBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
+import android.util.Log
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class InvoiceFragment : Fragment() {
     private var _binding: FragmentInvoiceBinding? = null
@@ -36,6 +41,8 @@ class InvoiceFragment : Fragment() {
     
     private val products = mutableListOf<Product>()
     private lateinit var productAdapter: ProductAdapter
+
+    private var currentJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,13 +57,16 @@ class InvoiceFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupButtons()
+        observeStocks()
         updateTotalAmount()
     }
 
     private fun setupRecyclerView() {
         productAdapter = ProductAdapter(
             products,
-            onProductChanged = { updateTotalAmount() },
+            onProductChanged = { 
+                updateTotalAmount() 
+            },
             onRemoveProduct = { position ->
                 products.removeAt(position)
                 productAdapter.notifyItemRemoved(position)
@@ -67,6 +77,13 @@ class InvoiceFragment : Fragment() {
         binding.productsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = productAdapter
+        }
+
+        // Observe stocks to update available quantities
+        viewLifecycleOwner.lifecycleScope.launch {
+            stockViewModel.stocks.collect { stocks ->
+                productAdapter.availableProducts = stocks
+            }
         }
     }
 
@@ -106,18 +123,21 @@ class InvoiceFragment : Fragment() {
         val dialogBinding = DialogProductSelectionBinding.inflate(layoutInflater)
         var selectedStock: Stock? = null
 
-        // Observe stocks for the dropdown
         viewLifecycleOwner.lifecycleScope.launch {
-            stockViewModel.allStocks.collectLatest { stocks ->
-                val adapter = ArrayAdapter(
-                    requireContext(),
-                    android.R.layout.simple_dropdown_item_1line,
-                    stocks.map { it.name }
-                )
-                dialogBinding.productSpinner.setAdapter(adapter)
-                
+            stockViewModel.stocks.collect { stocks ->
+                // Only update if we don't have a selection yet
+                if (selectedStock == null) {
+                    val adapter = ArrayAdapter(
+                        requireContext(),
+                        android.R.layout.simple_dropdown_item_1line,
+                        stocks.map { it.name }
+                    )
+                    dialogBinding.productSpinner.setAdapter(adapter)
+                }
+
                 dialogBinding.productSpinner.setOnItemClickListener { _, _, position, _ ->
                     selectedStock = stocks[position]
+                    dialogBinding.quantityEditText.hint = "Available: ${selectedStock?.quantity ?: 0}"
                 }
             }
         }
@@ -128,7 +148,7 @@ class InvoiceFragment : Fragment() {
             .setPositiveButton(getString(android.R.string.ok)) { _, _ ->
                 selectedStock?.let { stock ->
                     val quantity = dialogBinding.quantityEditText.text.toString().toIntOrNull() ?: 1
-                    
+
                     if (quantity <= 0 || quantity > stock.quantity) {
                         Toast.makeText(context, "Invalid quantity", Toast.LENGTH_SHORT).show()
                         return@setPositiveButton
@@ -148,44 +168,74 @@ class InvoiceFragment : Fragment() {
     }
 
     private fun generateAndPrintInvoice() {
+        val mainActivity = activity as? MainActivity
         val bluetoothSocket = MainActivity.bluetoothSocket
-        if (bluetoothSocket?.isConnected == true) {
-            viewLifecycleOwner.lifecycleScope.launch {
+        
+        if (bluetoothSocket == null || !bluetoothSocket.isConnected) {
+            // Try to reconnect
+            mainActivity?.connectToPrinter()
+            Toast.makeText(context, "Reconnecting to printer...", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        currentJob?.cancel()
+        
+        currentJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val currentStocks = withContext(Dispatchers.IO) {
+                    stockViewModel.stocks.first()
+                }
+
+                // Validate stock quantities
+                val invalidProducts = products.filter { product ->
+                    val stock = currentStocks.find { it.name == product.name }
+                    stock == null || stock.quantity < product.quantity
+                }
+
+                if (invalidProducts.isNotEmpty()) {
+                    Toast.makeText(
+                        context,
+                        "Some products are out of stock or have insufficient quantity",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
                 try {
-                    // First print the invoice
-                    (activity as? MainActivity)?.let { mainActivity ->
-                        mainActivity.printText(buildInvoiceString())
-                        
-                        // After successful printing, update stock and save history
-                        products.forEach { product ->
-                            stockViewModel.allStocks.collect { stocks ->
-                                stocks.find { it.name == product.name }?.let { stock ->
-                                    stockViewModel.update(stock.copy(
-                                        quantity = stock.quantity - product.quantity
-                                    ))
-                                }
-                                // Break the collection after finding and updating the stock
-                                return@collect
-                            }
+                    withContext(Dispatchers.IO) {
+                        mainActivity?.printText(buildInvoiceString())
+                    }
+                    
+                    currentStocks.forEach { stock ->
+                        products.find { it.name == stock.name }?.let { product ->
+                            val updatedStock = stock.copy(
+                                quantity = stock.quantity - product.quantity
+                            )
+                            stockViewModel.update(updatedStock)
                         }
-                        
-                        // Save invoice history
-                        saveInvoiceHistory()
-                        
-                        // Clear the products list and update UI
+                    }
+                    
+                    saveInvoiceHistory()
+                    
+                    withContext(Dispatchers.Main) {
                         products.clear()
                         productAdapter.notifyDataSetChanged()
                         updateTotalAmount()
-                        
                         Toast.makeText(context, "Invoice printed successfully", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: IOException) {
-                    Toast.makeText(context, "Printing failed: ${e.message}", Toast.LENGTH_LONG).show()
-                    MainActivity.bluetoothSocket = null
+                    Log.e("InvoiceFragment", "Printing failed: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Printing failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                    mainActivity?.connectToPrinter()
+                }
+            } catch (e: Exception) {
+                Log.e("InvoiceFragment", "Error: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-        } else {
-            Toast.makeText(context, "Printer not connected", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -248,8 +298,25 @@ class InvoiceFragment : Fragment() {
         binding.totalAmountTextView.text = getString(R.string.total_amount, formattedTotal)
     }
 
+    private fun observeStocks() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            stockViewModel.stocks.collectLatest { stocks ->
+                updateAvailableProducts(stocks)
+            }
+        }
+    }
+
+    private fun updateAvailableProducts(stocks: List<Stock>) {
+        productAdapter.availableProducts = stocks
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        currentJob?.cancel()
         _binding = null
+    }
+
+    private companion object {
+        private const val TAG = "InvoiceFragment"
     }
 } 

@@ -3,7 +3,6 @@ package com.example.luluuu.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.luluuu.databinding.ItemStockBinding
 import com.example.luluuu.model.Stock
@@ -11,10 +10,25 @@ import java.text.NumberFormat
 import java.util.Locale
 
 class StockAdapter(
+    private val onStockClick: (Stock) -> Unit,
     private val onEditClick: (Stock) -> Unit,
-    private val onDeleteClick: (Stock) -> Unit,
-    private val onHistoryClick: (Stock) -> Unit
-) : ListAdapter<Stock, StockAdapter.StockViewHolder>(StockDiffCallback()) {
+    private val onDeleteClick: (Stock) -> Unit
+) : RecyclerView.Adapter<StockAdapter.StockViewHolder>() {
+
+    private var stocks = listOf<Stock>()
+
+    fun submitList(newStocks: List<Stock>) {
+        val oldList = stocks
+        stocks = newStocks
+        DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = oldList.size
+            override fun getNewListSize() = newStocks.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) = 
+                oldList[oldPos].id == newStocks[newPos].id
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) = 
+                oldList[oldPos] == newStocks[newPos]
+        }).dispatchUpdatesTo(this)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StockViewHolder {
         val binding = ItemStockBinding.inflate(
@@ -26,8 +40,10 @@ class StockAdapter(
     }
 
     override fun onBindViewHolder(holder: StockViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(stocks[position])
     }
+
+    override fun getItemCount(): Int = stocks.size
 
     inner class StockViewHolder(
         private val binding: ItemStockBinding
@@ -40,21 +56,21 @@ class StockAdapter(
                 editButton.setOnClickListener {
                     val position = adapterPosition
                     if (position != RecyclerView.NO_POSITION) {
-                        onEditClick(getItem(position))
+                        onEditClick(stocks[position])
                     }
                 }
 
                 deleteButton.setOnClickListener {
                     val position = adapterPosition
                     if (position != RecyclerView.NO_POSITION) {
-                        onDeleteClick(getItem(position))
+                        onDeleteClick(stocks[position])
                     }
                 }
 
                 historyButton.setOnClickListener {
                     val position = adapterPosition
                     if (position != RecyclerView.NO_POSITION) {
-                        onHistoryClick(getItem(position))
+                        onStockClick(stocks[position])
                     }
                 }
             }
@@ -77,16 +93,6 @@ class StockAdapter(
                     }
                 )
             }
-        }
-    }
-
-    private class StockDiffCallback : DiffUtil.ItemCallback<Stock>() {
-        override fun areItemsTheSame(oldItem: Stock, newItem: Stock): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: Stock, newItem: Stock): Boolean {
-            return oldItem == newItem
         }
     }
 } 

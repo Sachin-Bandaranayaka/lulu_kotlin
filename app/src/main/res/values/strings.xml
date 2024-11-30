@@ -57,4 +57,5 @@
     <string name="sort_by_price">Sort by Price</string>
     <string name="sort_by_quantity">Sort by Quantity</string>
     <string name="history">History</string>
+    <string name="remove">Remove</string>
 </resources>

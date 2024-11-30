@@ -26,21 +26,27 @@ class StockActivity : AppCompatActivity() {
         binding = ActivityStockBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupToolbar()
         setupRecyclerView()
-        setupFab()
         observeStocks()
+        setupFab()
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     private fun setupRecyclerView() {
         stockAdapter = StockAdapter(
-            onEditClick = { stock -> showStockDialog(stock) },
+            onStockClick = { stock ->
+                startHistoryActivity(stock)
+            },
+            onEditClick = { stock ->
+                showStockDialog(stock)
+            },
             onDeleteClick = { stock ->
                 showDeleteConfirmationDialog(stock)
-            },
-            onHistoryClick = { stock -> 
-                // Handle history click here
-                // For example:
-                startHistoryActivity(stock)
             }
         )
 
@@ -50,17 +56,17 @@ class StockActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupFab() {
-        binding.addStockFab.setOnClickListener {
-            showStockDialog(null)
+    private fun observeStocks() {
+        lifecycleScope.launch {
+            viewModel.stocks.collect { stocks ->
+                stockAdapter.submitList(stocks)
+            }
         }
     }
 
-    private fun observeStocks() {
-        lifecycleScope.launch {
-            viewModel.allStocks.collect { stocks ->
-                stockAdapter.submitList(stocks)
-            }
+    private fun setupFab() {
+        binding.addStockFab.setOnClickListener {
+            showStockDialog(null)
         }
     }
 

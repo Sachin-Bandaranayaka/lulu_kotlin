@@ -84,20 +84,27 @@ class StockFragment : Fragment() {
 
     private fun setupRecyclerView() {
         stockAdapter = StockAdapter(
+            onStockClick = { stock ->
+                showStockHistory(stock)
+            },
             onEditClick = { stock ->
-                showEditStockDialog(stock)
+                showEditDialog(stock)
             },
             onDeleteClick = { stock ->
                 showDeleteConfirmation(stock)
-            },
-            onHistoryClick = { stock ->
-                showStockHistory(stock)
             }
         )
-        
+
         binding.stockRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = stockAdapter
+        }
+
+        // Observe stocks
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.stocks.collect { stocks ->
+                stockAdapter.submitList(stocks)
+            }
         }
     }
 
@@ -118,13 +125,13 @@ class StockFragment : Fragment() {
 
     private fun setupFab() {
         binding.addStockFab.setOnClickListener {
-            showEditStockDialog(null)
+            showEditDialog(null)
         }
     }
 
     private fun observeStocks() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.allStocks.collectLatest { stocks ->
+            viewModel.stocks.collect { stocks ->
                 stockAdapter.submitList(stocks)
             }
         }
@@ -152,7 +159,7 @@ class StockFragment : Fragment() {
         }
     }
 
-    private fun showEditStockDialog(stock: Stock? = null) {
+    private fun showEditDialog(stock: Stock? = null) {
         val binding = DialogStockEditBinding.inflate(layoutInflater)
         val isNewStock = stock == null
         
@@ -202,7 +209,9 @@ class StockFragment : Fragment() {
             .setTitle(getString(R.string.delete_confirmation))
             .setMessage(getString(R.string.delete_confirmation_message, stock.name))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                viewModel.delete(stock)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewModel.delete(stock)
+                }
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()

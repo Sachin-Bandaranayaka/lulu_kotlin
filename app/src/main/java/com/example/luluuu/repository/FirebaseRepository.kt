@@ -26,7 +26,13 @@ class FirebaseRepository {
     fun getAllStocks(): Flow<List<Stock>> = flow {
         val snapshot = stocksCollection.get().await()
         val stocks = snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
+            doc.toObject(Stock::class.java)?.copy(
+                firebaseId = doc.id,
+                name = doc.getString("name") ?: "",
+                price = doc.getDouble("price") ?: 0.0,
+                quantity = doc.getLong("quantity")?.toInt() ?: 0,
+                description = doc.getString("description") ?: ""
+            )
         }
         emit(stocks)
     }

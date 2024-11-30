@@ -13,6 +13,9 @@ interface StockDao {
     @Query("SELECT * FROM stocks")
     fun getAllStocks(): Flow<List<Stock>>
 
+    @Query("SELECT * FROM stocks")
+    suspend fun getAllStocksSync(): List<Stock>
+
     @Insert
     suspend fun insert(stock: Stock): Long
 
