@@ -58,7 +58,7 @@ class ExpenseFragment : Fragment() {
         }
     }
 
-    private fun showExpenseDialog(expense: Expense? = null) {
+    fun showExpenseDialog(expense: Expense? = null) {
         val binding = DialogExpenseEditBinding.inflate(layoutInflater)
         
         // Pre-fill dialog if editing existing expense
