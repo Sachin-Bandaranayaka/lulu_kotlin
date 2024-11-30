@@ -11,11 +11,12 @@ data class Expense(
     val description: String,
     val amount: Double,
     val category: ExpenseCategory,
-    val date: Date
+    val date: Date,
+    val firebaseId: String = ""
 )
 
 enum class ExpenseCategory {
     FUEL,
     VEHICLE_MAINTENANCE,
     OTHER
-} 
+}

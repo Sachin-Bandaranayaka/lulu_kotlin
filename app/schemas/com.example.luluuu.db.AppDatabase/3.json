@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "5912d532d571a5d1170a79604636e01d",
+    "identityHash": "bbe73b9bb0359c3d718707d7dd318107",
     "entities": [
       {
         "tableName": "stocks",
@@ -94,7 +94,7 @@
       },
       {
         "tableName": "expenses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `description` TEXT NOT NULL, `amount` REAL NOT NULL, `category` TEXT NOT NULL, `date` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `description` TEXT NOT NULL, `amount` REAL NOT NULL, `category` TEXT NOT NULL, `date` INTEGER NOT NULL, `firebaseId` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -125,6 +125,12 @@
             "columnName": "date",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "firebaseId",
+            "columnName": "firebaseId",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -140,7 +146,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5912d532d571a5d1170a79604636e01d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bbe73b9bb0359c3d718707d7dd318107')"
     ]
   }
 }

@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import com.example.luluuu.R
 import com.example.luluuu.databinding.FragmentExpenseBinding
 import com.example.luluuu.databinding.DialogExpenseEditBinding
@@ -21,7 +21,7 @@ import java.util.Date
 class ExpenseFragment : Fragment() {
     private var _binding: FragmentExpenseBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ExpenseViewModel by viewModels()
+    private val viewModel: ExpenseViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -91,12 +91,17 @@ class ExpenseFragment : Fragment() {
                     val newExpense = expense?.copy(
                         description = description,
                         amount = amount,
-                        category = category
+                        category = category,
+                        date = expense.date,  // Preserve the original date
+                        firebaseId = expense.firebaseId,  // Preserve the Firebase ID
+                        id = expense.id  // Preserve the local database ID
                     ) ?: Expense(
                         description = description,
                         amount = amount,
                         category = category,
-                        date = Date()
+                        date = Date(),
+                        firebaseId = "",  // New expenses start with empty Firebase ID
+                        id = 0  // Let Room auto-generate the ID
                     )
                     
                     if (expense == null) {
@@ -116,4 +121,4 @@ class ExpenseFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-} 
+}

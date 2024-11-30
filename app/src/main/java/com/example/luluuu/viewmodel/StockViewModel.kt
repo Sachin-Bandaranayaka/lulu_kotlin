@@ -10,21 +10,43 @@ import com.example.luluuu.repository.StockRepository
 import com.example.luluuu.repository.FirebaseRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: StockRepository
     private val firebaseRepository: FirebaseRepository
     private val _searchQuery = MutableStateFlow("")
     private val _sortOrder = MutableStateFlow(SortOrder.NAME)
+    private val _stocks = MutableStateFlow<List<Stock>>(emptyList())
 
     init {
         val stockDao = AppDatabase.getDatabase(application).stockDao()
         repository = StockRepository(stockDao)
         firebaseRepository = FirebaseRepository()
+
+        // Start collecting stocks
+        viewModelScope.launch {
+            combine(
+                repository.getAllStocks(),
+                firebaseRepository.getAllStocks()
+            ) { localStocks, firebaseStocks ->
+                // Use Firebase data if available, otherwise use local data
+                if (firebaseStocks.isNotEmpty()) {
+                    firebaseStocks
+                } else {
+                    localStocks
+                }
+            }.collect { stocks ->
+                _stocks.value = stocks
+            }
+        }
     }
 
     val stocks = combine(
-        repository.getAllStocks(),
+        _stocks,
         _searchQuery,
         _sortOrder
     ) { stocks, query, sortOrder ->
@@ -63,59 +85,78 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun delete(stock: Stock) {
         viewModelScope.launch {
-            // Delete from local database
-            repository.delete(stock)
-            // Delete from Firebase
             try {
+                // First delete from Firebase if it exists
                 if (stock.firebaseId.isNotBlank()) {
                     firebaseRepository.deleteStock(stock.firebaseId)
                 }
+                // Then delete from local database
+                repository.delete(stock)
+                // Refresh the stocks list
+                refreshStocks()
             } catch (e: Exception) {
-                Log.e("StockViewModel", "Failed to delete from Firebase: ${e.message}")
+                Log.e("StockViewModel", "Failed to delete stock: ${e.message}")
             }
         }
     }
 
     fun update(stock: Stock) {
         viewModelScope.launch {
-            // Update local database
-            repository.update(stock)
-            // Sync with Firebase
             try {
                 if (stock.firebaseId.isNotBlank()) {
+                    // Update Firebase first
                     firebaseRepository.updateStock(stock.firebaseId, stock)
+                    // Then update local database
+                    repository.update(stock)
                 } else {
                     // If no Firebase ID exists, create new document
                     val firebaseId = firebaseRepository.addStock(stock)
                     // Update local stock with new Firebase ID
                     repository.update(stock.copy(firebaseId = firebaseId))
                 }
+                // Refresh the stocks list
+                refreshStocks()
             } catch (e: Exception) {
-                Log.e("StockViewModel", "Failed to sync with Firebase: ${e.message}")
+                Log.e("StockViewModel", "Failed to update stock: ${e.message}")
             }
         }
     }
 
     fun insert(stock: Stock) {
         viewModelScope.launch {
-            // First insert into local database
-            val id = repository.insert(stock)
-            // Then sync with Firebase
             try {
-                val stockWithId = stock.copy(id = id)
-                firebaseRepository.addStock(stockWithId)
+                // First add to Firebase to get ID
+                val firebaseId = firebaseRepository.addStock(stock)
+                // Then insert into local database with Firebase ID
+                val stockWithId = stock.copy(firebaseId = firebaseId)
+                repository.insert(stockWithId)
+                // Refresh the stocks list
+                refreshStocks()
             } catch (e: Exception) {
-                Log.e("StockViewModel", "Failed to sync with Firebase: ${e.message}")
+                Log.e("StockViewModel", "Failed to insert stock: ${e.message}")
             }
         }
     }
 
-    fun setSortOrder(order: SortOrder) {
-        _sortOrder.value = order
+    private suspend fun refreshStocks() {
+        try {
+            val firebaseStocks = firebaseRepository.getAllStocks().first()
+            if (firebaseStocks.isNotEmpty()) {
+                _stocks.value = firebaseStocks
+            } else {
+                _stocks.value = repository.getAllStocks().first()
+            }
+        } catch (e: Exception) {
+            Log.e("StockViewModel", "Error refreshing stocks: ${e.message}")
+        }
     }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setSortOrder(order: SortOrder) {
+        _sortOrder.value = order
     }
 
     enum class SortOrder {
@@ -125,4 +166,4 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val LOW_STOCK_THRESHOLD = 5
     }
-} 
+}

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExpenseDao {
-    @Query("SELECT * FROM expenses ORDER BY date DESC")
+    @Query("SELECT *, '' as firebaseId FROM expenses ORDER BY date DESC")
     fun getAllExpenses(): Flow<List<Expense>>
 
     @Insert
@@ -17,4 +17,4 @@ interface ExpenseDao {
 
     @Delete
     suspend fun delete(expense: Expense)
-} 
+}
