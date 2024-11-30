@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         // Test Firebase connection
         testFirebaseConnection()
         testStockSync()
+        testFirebaseOperations()
     }
 
     private fun connectToPrinter() {
@@ -216,6 +217,34 @@ class MainActivity : AppCompatActivity() {
                 "Test sync failed: ${e.message}",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    private fun testFirebaseOperations() {
+        lifecycleScope.launch {
+            try {
+                // Test cleanup
+                firebaseRepository.cleanupTestData()
+                Toast.makeText(this@MainActivity, "Cleaned up test data", Toast.LENGTH_SHORT).show()
+
+                // Test search
+                firebaseRepository.searchStocksByName("Test").collectLatest { stocks ->
+                    Log.d("Firebase", "Search results: $stocks")
+                }
+
+                // Test low stock query
+                firebaseRepository.getLowStockItems(5).collectLatest { stocks ->
+                    Log.d("Firebase", "Low stock items: $stocks")
+                }
+
+            } catch (e: Exception) {
+                Log.e("Firebase", "Error in Firebase operations: ${e.message}")
+                Toast.makeText(
+                    this@MainActivity,
+                    "Firebase operations failed: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 } 

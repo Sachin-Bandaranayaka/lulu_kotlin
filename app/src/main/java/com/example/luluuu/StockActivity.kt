@@ -1,5 +1,6 @@
 package com.example.luluuu
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
@@ -35,6 +36,11 @@ class StockActivity : AppCompatActivity() {
             onEditClick = { stock -> showStockDialog(stock) },
             onDeleteClick = { stock ->
                 showDeleteConfirmationDialog(stock)
+            },
+            onHistoryClick = { stock -> 
+                // Handle history click here
+                // For example:
+                startHistoryActivity(stock)
             }
         )
 
@@ -102,5 +108,13 @@ class StockActivity : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
+    }
+
+    private fun startHistoryActivity(stock: Stock) {
+        val intent = Intent(this, StockHistoryActivity::class.java).apply {
+            putExtra("STOCK_ID", stock.id)
+            putExtra("STOCK_NAME", stock.name)
+        }
+        startActivity(intent)
     }
 } 

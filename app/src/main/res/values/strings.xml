@@ -48,4 +48,13 @@
     <string name="edit_expense">Edit Expense</string>
     <string name="expense_description">Description</string>
     <string name="category">Category</string>
+    <string name="search_stocks">Search stocks…</string>
+    <string name="low_stock_warning">Low Stock Warning</string>
+    <string name="low_stock_alert">The following items are running low:</string>
+    <string name="ok">OK</string>
+    <string name="sort">Sort</string>
+    <string name="sort_by_name">Sort by Name</string>
+    <string name="sort_by_price">Sort by Price</string>
+    <string name="sort_by_quantity">Sort by Quantity</string>
+    <string name="history">History</string>
 </resources>

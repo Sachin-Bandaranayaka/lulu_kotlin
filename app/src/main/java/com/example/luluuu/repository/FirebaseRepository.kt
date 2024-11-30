@@ -13,6 +13,7 @@ import java.util.Date
 
 class FirebaseRepository {
     private val db = Firebase.firestore
+    private val stocksCollection = db.collection("stocks")
 
     // Stock Operations
     suspend fun syncStock(stock: Stock) {
@@ -23,21 +24,60 @@ class FirebaseRepository {
     }
 
     fun getAllStocks(): Flow<List<Stock>> = flow {
-        val snapshot = db.collection("stocks")
-            .get()
-            .await()
-        
+        val snapshot = stocksCollection.get().await()
         val stocks = snapshot.documents.mapNotNull { doc ->
-            doc.toObject(Stock::class.java)
+            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
         }
         emit(stocks)
     }
 
-    suspend fun deleteStock(stockId: Long) {
-        db.collection("stocks")
-            .document(stockId.toString())
-            .delete()
+    suspend fun deleteStock(stockId: String) {
+        stocksCollection.document(stockId).delete().await()
+    }
+
+    suspend fun addStock(stock: Stock): String {
+        val docRef = stocksCollection.add(stock).await()
+        return docRef.id
+    }
+
+    suspend fun updateStock(stockId: String, stock: Stock) {
+        stocksCollection.document(stockId).set(stock).await()
+    }
+
+    fun searchStocksByName(query: String): Flow<List<Stock>> = flow {
+        val snapshot = stocksCollection
+            .whereGreaterThanOrEqualTo("name", query)
+            .whereLessThanOrEqualTo("name", query + '\uf8ff')
+            .get()
             .await()
+        
+        val stocks = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
+        }
+        emit(stocks)
+    }
+
+    fun getLowStockItems(threshold: Int = 5): Flow<List<Stock>> = flow {
+        val snapshot = stocksCollection
+            .whereLessThanOrEqualTo("quantity", threshold)
+            .get()
+            .await()
+        
+        val stocks = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Stock::class.java)?.copy(id = doc.id.toLongOrNull() ?: 0)
+        }
+        emit(stocks)
+    }
+
+    suspend fun cleanupTestData() {
+        val snapshot = stocksCollection
+            .whereEqualTo("name", "Test Product")
+            .get()
+            .await()
+        
+        for (doc in snapshot.documents) {
+            doc.reference.delete()
+        }
     }
 
     // Invoice Operations
