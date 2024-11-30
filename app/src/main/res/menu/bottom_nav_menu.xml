@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_inventory"
         android:title="@string/stock" />
     <item
+        android:id="@+id/navigation_expenses"
+        android:icon="@drawable/ic_expenses"
+        android:title="@string/expenses" />
+    <item
         android:id="@+id/navigation_settings"
         android:icon="@drawable/ic_settings"
         android:title="@string/settings" />

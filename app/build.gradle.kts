@@ -88,4 +88,7 @@ dependencies {
 
     // Add Gson dependency
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // Add MPAndroidChart dependency
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

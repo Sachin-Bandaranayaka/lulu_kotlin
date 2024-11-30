@@ -7,12 +7,14 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.luluuu.model.Stock
 import com.example.luluuu.model.Invoice
+import com.example.luluuu.model.Expense
 
-@Database(entities = [Stock::class, Invoice::class], version = 2)
+@Database(entities = [Stock::class, Invoice::class, Expense::class], version = 3)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun stockDao(): StockDao
     abstract fun invoiceDao(): InvoiceDao
+    abstract fun expenseDao(): ExpenseDao
 
     companion object {
         @Volatile

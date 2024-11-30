@@ -28,4 +28,9 @@
         android:name="com.example.luluuu.ui.settings.SettingsFragment"
         android:label="@string/settings" />
 
+    <fragment
+        android:id="@+id/navigation_expenses"
+        android:name="com.example.luluuu.ui.expense.ExpenseFragment"
+        android:label="@string/expenses" />
+
 </navigation> 

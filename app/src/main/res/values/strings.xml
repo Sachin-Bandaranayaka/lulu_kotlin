@@ -37,4 +37,15 @@
     <string name="invoice_history">Invoice History</string>
     <string name="reprint">Reprint</string>
     <string name="view_history">View History</string>
+    <string name="expenses">Expenses</string>
+    <string name="add_expense">Add Expense</string>
+    <string name="fuel">Fuel</string>
+    <string name="vehicle_maintenance">Vehicle Maintenance</string>
+    <string name="other_expenses">Other</string>
+    <string name="amount">Amount</string>
+    <string name="expense_category">Category</string>
+    <string name="summary">Summary</string>
+    <string name="edit_expense">Edit Expense</string>
+    <string name="expense_description">Description</string>
+    <string name="category">Category</string>
 </resources>
