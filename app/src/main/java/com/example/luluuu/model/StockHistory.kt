@@ -2,6 +2,7 @@ package com.example.luluuu.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
@@ -14,7 +15,8 @@ import java.util.Date
             childColumns = ["stockId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index("stockId")]
 )
 data class StockHistory(
     @PrimaryKey(autoGenerate = true)
@@ -26,4 +28,4 @@ data class StockHistory(
     val oldPrice: Double,
     val newPrice: Double,
     val action: String // e.g., "EDIT", "DELETE", "CREATE"
-) 
+)

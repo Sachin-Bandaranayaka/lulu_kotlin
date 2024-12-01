@@ -4,12 +4,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Match any document in the 'stocks' collection
     match /stocks/{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
     
     // Match any document in the 'expenses' collection
     match /expenses/{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
+    }
+    
+    // Match any document in the 'invoices' collection
+    match /invoices/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Match any document in the 'stock_history' collection
+    match /stock_history/{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -2,16 +2,22 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b229b81122eaa654f42c9178f4602bae",
+    "identityHash": "17502e0fbf0703d4f25ca780bce31cee",
     "entities": [
       {
         "tableName": "stocks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `price` REAL NOT NULL, `quantity` INTEGER NOT NULL, `description` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `firebaseId` TEXT NOT NULL, `name` TEXT NOT NULL, `price` REAL NOT NULL, `quantity` INTEGER NOT NULL, `description` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firebaseId",
+            "columnName": "firebaseId",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -107,7 +113,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_stock_history_stockId",
+            "unique": false,
+            "columnNames": [
+              "stockId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_history_stockId` ON `${TABLE_NAME}` (`stockId`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "stocks",
@@ -126,7 +142,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b229b81122eaa654f42c9178f4602bae')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '17502e0fbf0703d4f25ca780bce31cee')"
     ]
   }
 }

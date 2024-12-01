@@ -1,6 +1,6 @@
 package com.example.luluuu.repository
 
-import com.example.luluuu.database.StockDao
+import com.example.luluuu.db.StockDao
 import com.example.luluuu.model.Stock
 import java.util.Date
 import kotlinx.coroutines.flow.Flow
@@ -21,4 +21,4 @@ class StockRepository(private val stockDao: StockDao) {
             // Log error or handle exception
         }
     }
-} 
+}

@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Invoice Printer</string>
     <string name="customer_name">Customer Name</string>
+    <string name="customer_mobile">Mobile Number</string>
     <string name="product_name">Product Name</string>
     <string name="price">Price (LKR)</string>
     <string name="quantity">Quantity</string>
@@ -58,4 +59,7 @@
     <string name="sort_by_quantity">Sort by Quantity</string>
     <string name="history">History</string>
     <string name="remove">Remove</string>
+    <string name="edit_last_invoice">Edit Last Invoice</string>
+    <string name="delete_last_invoice">Delete Last Invoice</string>
+    <string name="delete_invoice">Delete Invoice</string>
 </resources>

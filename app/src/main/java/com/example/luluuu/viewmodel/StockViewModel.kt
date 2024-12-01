@@ -4,7 +4,8 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.luluuu.database.AppDatabase
+import com.example.luluuu.db.AppDatabase
+import com.example.luluuu.db.StockDao
 import com.example.luluuu.model.Stock
 import com.example.luluuu.repository.StockRepository
 import com.example.luluuu.repository.FirebaseRepository

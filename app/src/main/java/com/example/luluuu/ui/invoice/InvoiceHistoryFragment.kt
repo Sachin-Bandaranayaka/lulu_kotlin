@@ -14,6 +14,7 @@ import com.example.luluuu.MainActivity
 import com.example.luluuu.databinding.FragmentInvoiceHistoryBinding
 import com.example.luluuu.model.Invoice
 import com.example.luluuu.viewmodel.InvoiceViewModel
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -43,9 +44,14 @@ class InvoiceHistoryFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = InvoiceHistoryAdapter(onInvoiceClick = { invoice ->
-            printInvoice(invoice)
-        })
+        adapter = InvoiceHistoryAdapter(
+            onInvoiceClick = { invoice ->
+                printInvoice(invoice)
+            },
+            onDeleteClick = { invoice ->
+                showDeleteConfirmationDialog(invoice)
+            }
+        )
         
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -110,8 +116,20 @@ class InvoiceHistoryFragment : Fragment() {
         }
     }
 
+    private fun showDeleteConfirmationDialog(invoice: Invoice) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_invoice)
+            .setMessage("Are you sure you want to delete this invoice?")
+            .setPositiveButton("Delete") { _, _ ->
+                viewModel.delete(invoice)
+                Toast.makeText(context, "Invoice deleted", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-} 
+}

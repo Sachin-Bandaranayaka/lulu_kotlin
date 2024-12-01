@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "202f1aa71833eaaa68b66f93431904e9",
+    "identityHash": "17502e0fbf0703d4f25ca780bce31cee",
     "entities": [
       {
         "tableName": "stocks",
@@ -113,7 +113,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_stock_history_stockId",
+            "unique": false,
+            "columnNames": [
+              "stockId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_history_stockId` ON `${TABLE_NAME}` (`stockId`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "stocks",
@@ -132,7 +142,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '202f1aa71833eaaa68b66f93431904e9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '17502e0fbf0703d4f25ca780bce31cee')"
     ]
   }
 }

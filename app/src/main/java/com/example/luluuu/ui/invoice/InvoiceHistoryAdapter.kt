@@ -12,8 +12,12 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class InvoiceHistoryAdapter(
-    private val onInvoiceClick: (Invoice) -> Unit
+    private val onInvoiceClick: (Invoice) -> Unit,
+    private val onDeleteClick: (Invoice) -> Unit
 ) : ListAdapter<Invoice, InvoiceHistoryAdapter.ViewHolder>(InvoiceDiffCallback()) {
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("si", "LK"))
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
@@ -33,14 +37,18 @@ class InvoiceHistoryAdapter(
         private val binding: ItemInvoiceHistoryBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("si", "LK"))
-
         init {
             binding.root.setOnClickListener {
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onInvoiceClick(getItem(position))
+                }
+            }
+
+            binding.deleteButton.setOnClickListener {
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onDeleteClick(getItem(position))
                 }
             }
         }
@@ -55,7 +63,7 @@ class InvoiceHistoryAdapter(
         }
     }
 
-    private class InvoiceDiffCallback : DiffUtil.ItemCallback<Invoice>() {
+    class InvoiceDiffCallback : DiffUtil.ItemCallback<Invoice>() {
         override fun areItemsTheSame(oldItem: Invoice, newItem: Invoice): Boolean {
             return oldItem.id == newItem.id
         }
@@ -64,4 +72,4 @@ class InvoiceHistoryAdapter(
             return oldItem == newItem
         }
     }
-} 
+}

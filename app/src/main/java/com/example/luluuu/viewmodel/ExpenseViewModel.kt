@@ -34,7 +34,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 repository.allExpenses,
                 firebaseRepository.getAllExpenses()
             ) { localExpenses, firebaseExpenses ->
-                // Use Firebase data if available, otherwise use local data
+                // Always prefer Firebase data, fall back to local if Firebase is empty
                 if (firebaseExpenses.isNotEmpty()) {
                     firebaseExpenses
                 } else {
@@ -52,7 +52,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             val expenseWithId = firebaseRepository.insertExpense(expense)
             // Then save to local database with the Firebase ID
             repository.insert(expenseWithId)
-            // Refresh the expenses list
+            // Force refresh the expenses list
             refreshExpenses()
         } catch (e: Exception) {
             Log.e("ExpenseViewModel", "Error inserting expense: ${e.message}")
@@ -68,12 +68,11 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
                 // Then update local database
                 repository.update(expense)
             } else {
-                // If no Firebase ID, treat it as a new expense in Firebase
+                // If no Firebase ID, treat it as a new expense
                 val expenseWithId = firebaseRepository.insertExpense(expense)
-                // Update local expense with the new Firebase ID
                 repository.update(expenseWithId)
             }
-            // Refresh the expenses list
+            // Force refresh the expenses list
             refreshExpenses()
         } catch (e: Exception) {
             Log.e("ExpenseViewModel", "Error updating expense: ${e.message}")
@@ -86,14 +85,18 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     fun delete(expense: Expense) = viewModelScope.launch {
         try {
-            // First delete from Firebase if it exists
+            // Delete from Firebase first if it exists
             if (expense.firebaseId.isNotBlank()) {
                 firebaseRepository.deleteExpense(expense)
             }
             // Then delete from local database
             repository.delete(expense)
-            // Refresh the expenses list
+            
+            // Force refresh the expenses list
             refreshExpenses()
+            
+            // Also remove from current list immediately for better UI responsiveness
+            _expenses.value = _expenses.value.filter { it.id != expense.id }
         } catch (e: Exception) {
             Log.e("ExpenseViewModel", "Error deleting expense: ${e.message}")
             // Only throw if it's not a Firebase-related error
@@ -105,14 +108,22 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     private suspend fun refreshExpenses() {
         try {
+            // Always try to get Firebase data first
             val firebaseExpenses = firebaseRepository.getAllExpenses().first()
             if (firebaseExpenses.isNotEmpty()) {
                 _expenses.value = firebaseExpenses
+                // Update local database with Firebase data
+                firebaseExpenses.forEach { expense ->
+                    repository.update(expense)
+                }
             } else {
+                // If Firebase is empty, use local data
                 _expenses.value = repository.allExpenses.first()
             }
         } catch (e: Exception) {
             Log.e("ExpenseViewModel", "Error refreshing expenses: ${e.message}")
+            // If Firebase fails, fall back to local data
+            _expenses.value = repository.allExpenses.first()
         }
     }
 

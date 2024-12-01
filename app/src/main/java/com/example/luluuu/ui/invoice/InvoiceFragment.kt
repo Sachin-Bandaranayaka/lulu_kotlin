@@ -2,6 +2,9 @@ package com.example.luluuu.ui.invoice
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -44,6 +47,11 @@ class InvoiceFragment : Fragment() {
 
     private var currentJob: Job? = null
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -59,6 +67,25 @@ class InvoiceFragment : Fragment() {
         setupButtons()
         observeStocks()
         updateTotalAmount()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.invoice_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_edit_last_invoice -> {
+                loadLastPrintedInvoice()
+                true
+            }
+            R.id.action_delete_last_invoice -> {
+                deleteLastPrintedInvoice()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun setupRecyclerView() {
@@ -104,19 +131,31 @@ class InvoiceFragment : Fragment() {
     }
 
     private fun validateInputs(): Boolean {
+        var isValid = true
+        
+        val customerName = binding.customerNameEditText.text.toString().trim()
+        val customerMobile = binding.customerMobileEditText.text.toString().trim()
+        
+        if (customerName.isEmpty()) {
+            binding.customerNameLayout.error = "Please enter customer name"
+            isValid = false
+        } else {
+            binding.customerNameLayout.error = null
+        }
+        
+        if (customerMobile.isEmpty()) {
+            binding.customerMobileLayout.error = "Please enter mobile number"
+            isValid = false
+        } else {
+            binding.customerMobileLayout.error = null
+        }
+
         if (products.isEmpty()) {
             Toast.makeText(context, "Please add at least one product", Toast.LENGTH_SHORT).show()
-            return false
+            isValid = false
         }
 
-        for (product in products) {
-            if (product.name.isBlank() || product.price <= 0) {
-                Toast.makeText(context, "Please fill all product details correctly", Toast.LENGTH_SHORT).show()
-                return false
-            }
-        }
-
-        return true
+        return isValid
     }
 
     private fun showProductSelectionDialog() {
@@ -240,6 +279,19 @@ class InvoiceFragment : Fragment() {
     }
 
     private fun saveInvoiceHistory() {
+        val customerName = binding.customerNameEditText.text.toString().trim()
+        val customerMobile = binding.customerMobileEditText.text.toString().trim()
+        
+        if (customerName.isEmpty()) {
+            binding.customerNameLayout.error = "Please enter customer name"
+            return
+        }
+        
+        if (customerMobile.isEmpty()) {
+            binding.customerMobileLayout.error = "Please enter mobile number"
+            return
+        }
+
         val invoiceItems = products.map { product ->
             InvoiceItem(
                 productName = product.name,
@@ -249,24 +301,63 @@ class InvoiceFragment : Fragment() {
             )
         }
         
-        val invoice = Invoice(
-            date = Date(),
-            items = invoiceItems,
-            total = products.sumOf { it.total() }
-        )
+        val currentDate = Date()
+        val invoiceNumber = generateInvoiceNumber(currentDate)
         
-        invoiceViewModel.insert(invoice)
+        val lastInvoice = invoiceViewModel.getLastPrintedInvoice()
+        val invoice = if (lastInvoice != null && products == lastInvoice.items.map { 
+            Product(it.productName, it.price, it.quantity) 
+        }) {
+            // This is an update to the last invoice
+            lastInvoice.copy(
+                customerName = customerName,
+                customerMobile = customerMobile,
+                items = invoiceItems,
+                total = products.sumOf { it.total() }
+            )
+        } else {
+            // This is a new invoice
+            Invoice(
+                date = currentDate,
+                invoiceNumber = invoiceNumber,
+                customerName = customerName,
+                customerMobile = customerMobile,
+                items = invoiceItems,
+                total = products.sumOf { it.total() }
+            )
+        }
+        
+        if (lastInvoice != null && invoice.firebaseId == lastInvoice.firebaseId) {
+            invoiceViewModel.update(invoice)
+        } else {
+            invoiceViewModel.insert(invoice)
+        }
+    }
+
+    private fun generateInvoiceNumber(date: Date): String {
+        val dateFormat = java.text.SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val randomSuffix = (1000..9999).random()
+        return "INV-${dateFormat.format(date)}-$randomSuffix"
     }
 
     private fun buildInvoiceString(): String {
         val currencyFormat = NumberFormat.getCurrencyInstance(Locale("si", "LK"))
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val customerName = binding.customerNameEditText.text.toString().trim()
+        val customerMobile = binding.customerMobileEditText.text.toString().trim()
+        val currentDate = Date()
+        val invoiceNumber = generateInvoiceNumber(currentDate)
+
         return buildString {
             appendLine("================================")
             appendLine("           LULU ENTERPRISES")
             appendLine("================================")
-            appendLine("           ${getString(R.string.invoice_header)}")
-            appendLine("================================")
-            appendLine()
+            appendLine("Invoice #: $invoiceNumber")
+            appendLine("Date: ${dateFormat.format(currentDate)}")
+            appendLine("--------------------------------")
+            appendLine("Customer: $customerName")
+            appendLine("Mobile: $customerMobile")
+            appendLine("--------------------------------")
             appendLine(getString(R.string.item_details))
             appendLine("--------------------------------")
             
@@ -310,6 +401,49 @@ class InvoiceFragment : Fragment() {
         productAdapter.availableProducts = stocks
     }
 
+    private fun loadLastPrintedInvoice() {
+        val lastInvoice = invoiceViewModel.getLastPrintedInvoice()
+        if (lastInvoice != null) {
+            // Clear current products
+            products.clear()
+            
+            // Load invoice data
+            binding.customerNameEditText.setText(lastInvoice.customerName)
+            binding.customerMobileEditText.setText(lastInvoice.customerMobile)
+            
+            // Convert invoice items to products
+            products.addAll(lastInvoice.items.map { item ->
+                Product(
+                    name = item.productName,
+                    price = item.price,
+                    quantity = item.quantity
+                )
+            })
+            
+            productAdapter.notifyDataSetChanged()
+            updateTotalAmount()
+        } else {
+            Toast.makeText(context, "No recent invoice found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun deleteLastPrintedInvoice() {
+        val lastInvoice = invoiceViewModel.getLastPrintedInvoice()
+        if (lastInvoice != null) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.delete_last_invoice)
+                .setMessage("Are you sure you want to delete the last printed invoice?")
+                .setPositiveButton("Delete") { _, _ ->
+                    invoiceViewModel.delete(lastInvoice)
+                    Toast.makeText(context, "Last invoice deleted", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } else {
+            Toast.makeText(context, "No recent invoice found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         currentJob?.cancel()
@@ -319,4 +453,4 @@ class InvoiceFragment : Fragment() {
     private companion object {
         private const val TAG = "InvoiceFragment"
     }
-} 
+}

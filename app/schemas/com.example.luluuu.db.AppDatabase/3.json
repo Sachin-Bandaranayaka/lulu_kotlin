@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "bbe73b9bb0359c3d718707d7dd318107",
+    "identityHash": "daa1d9ed7781fc68b2d7174c5c2617b6",
     "entities": [
       {
         "tableName": "stocks",
@@ -55,12 +55,18 @@
         "foreignKeys": []
       },
       {
-        "tableName": "invoices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` INTEGER NOT NULL, `items` TEXT NOT NULL, `total` REAL NOT NULL)",
+        "tableName": "stock_history",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stockId` INTEGER NOT NULL, `date` INTEGER NOT NULL, `oldQuantity` INTEGER NOT NULL, `newQuantity` INTEGER NOT NULL, `oldPrice` REAL NOT NULL, `newPrice` REAL NOT NULL, `action` TEXT NOT NULL, FOREIGN KEY(`stockId`) REFERENCES `stocks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stockId",
+            "columnName": "stockId",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -71,15 +77,33 @@
             "notNull": true
           },
           {
-            "fieldPath": "items",
-            "columnName": "items",
-            "affinity": "TEXT",
+            "fieldPath": "oldQuantity",
+            "columnName": "oldQuantity",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "total",
-            "columnName": "total",
+            "fieldPath": "newQuantity",
+            "columnName": "newQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "oldPrice",
+            "columnName": "oldPrice",
             "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "newPrice",
+            "columnName": "newPrice",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "action",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -89,8 +113,30 @@
             "id"
           ]
         },
-        "indices": [],
-        "foreignKeys": []
+        "indices": [
+          {
+            "name": "index_stock_history_stockId",
+            "unique": false,
+            "columnNames": [
+              "stockId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stock_history_stockId` ON `${TABLE_NAME}` (`stockId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "stocks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "stockId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       },
       {
         "tableName": "expenses",
@@ -141,12 +187,74 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "invoices",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `invoiceNumber` TEXT NOT NULL, `customerName` TEXT NOT NULL, `customerMobile` TEXT NOT NULL, `date` INTEGER NOT NULL, `items` TEXT NOT NULL, `total` REAL NOT NULL, `firebase_id` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "invoiceNumber",
+            "columnName": "invoiceNumber",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "customerName",
+            "columnName": "customerName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "customerMobile",
+            "columnName": "customerMobile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "items",
+            "columnName": "items",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "total",
+            "columnName": "total",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firebaseId",
+            "columnName": "firebase_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bbe73b9bb0359c3d718707d7dd318107')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'daa1d9ed7781fc68b2d7174c5c2617b6')"
     ]
   }
 }

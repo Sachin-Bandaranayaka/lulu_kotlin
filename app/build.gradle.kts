@@ -93,10 +93,14 @@ dependencies {
     // Add MPAndroidChart dependency
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
-    // Add Firebase BoM (Bill of Materials)
-    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
-    
-    // Add Firebase dependencies
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
+    
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-base:18.2.0")
+    implementation("com.google.android.gms:play-services-basement:18.2.0")
 }
