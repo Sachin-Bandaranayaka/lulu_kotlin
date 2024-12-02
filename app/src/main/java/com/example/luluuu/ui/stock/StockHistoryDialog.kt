@@ -1,23 +1,21 @@
 package com.example.luluuu.ui.stock
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.luluuu.adapter.StockHistoryAdapter
 import com.example.luluuu.databinding.DialogStockHistoryBinding
-import com.example.luluuu.model.Stock
 import com.example.luluuu.viewmodel.StockHistoryViewModel
-import kotlinx.coroutines.launch
 
-class StockHistoryDialog(private val stock: Stock) : DialogFragment() {
+class StockHistoryDialog(private val stockId: Long) : DialogFragment() {
     private var _binding: DialogStockHistoryBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: StockHistoryViewModel by viewModels()
+    private lateinit var viewModel: StockHistoryViewModel
     private lateinit var adapter: StockHistoryAdapter
 
     override fun onCreateView(
@@ -31,22 +29,43 @@ class StockHistoryDialog(private val stock: Stock) : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.d("StockHistoryDialog", "Dialog created for stock ID: $stockId")
+
         setupRecyclerView()
-        observeHistory()
+        setupViewModel()
+        observeViewModel()
+
+        // Load stock history
+        viewModel.loadStockHistory(stockId)
+        
+        // Set dialog title
+        binding.titleTextView.text = "History: $stockId"
     }
 
     private fun setupRecyclerView() {
         adapter = StockHistoryAdapter()
-        binding.historyRecyclerView.apply {
+        binding.recyclerViewStockHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@StockHistoryDialog.adapter
         }
     }
 
-    private fun observeHistory() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.getStockHistory(stock.id).collect { history ->
-                adapter.submitList(history)
+    private fun setupViewModel() {
+        viewModel = ViewModelProvider(this)[StockHistoryViewModel::class.java]
+    }
+
+    private fun observeViewModel() {
+        viewModel.stockHistory.observe(viewLifecycleOwner) { historyList ->
+            Log.d("StockHistoryDialog", "Received ${historyList.size} history entries")
+            adapter.submitList(historyList)
+            
+            // Show/hide empty state
+            if (historyList.isEmpty()) {
+                binding.textViewNoHistory.visibility = View.VISIBLE
+                binding.recyclerViewStockHistory.visibility = View.GONE
+            } else {
+                binding.textViewNoHistory.visibility = View.GONE
+                binding.recyclerViewStockHistory.visibility = View.VISIBLE
             }
         }
     }
@@ -55,4 +74,4 @@ class StockHistoryDialog(private val stock: Stock) : DialogFragment() {
         super.onDestroyView()
         _binding = null
     }
-} 
+}

@@ -10,7 +10,11 @@
         android:label="@string/invoice">
         <action
             android:id="@+id/action_invoice_to_history"
-            app:destination="@id/navigation_invoice_history" />
+            app:destination="@id/navigation_invoice_history"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim"
+            app:popEnterAnim="@anim/nav_default_pop_enter_anim"
+            app:popExitAnim="@anim/nav_default_pop_exit_anim" />
     </fragment>
 
     <fragment
@@ -33,4 +37,4 @@
         android:name="com.example.luluuu.ui.expense.ExpenseFragment"
         android:label="@string/expenses" />
 
-</navigation> 
+</navigation>

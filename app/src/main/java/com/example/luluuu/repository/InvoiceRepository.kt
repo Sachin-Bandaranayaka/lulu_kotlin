@@ -2,7 +2,9 @@ package com.example.luluuu.repository
 
 import com.example.luluuu.db.InvoiceDao
 import com.example.luluuu.model.Invoice
+import com.example.luluuu.model.Customer
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,29 +13,20 @@ class InvoiceRepository @Inject constructor(
     private val invoiceDao: InvoiceDao,
     private val firebaseRepository: InvoiceFirebaseRepository
 ) {
-    val allInvoices: Flow<List<Invoice>> = firebaseRepository.getAllInvoices()
+    val allInvoices: Flow<List<Invoice>> = invoiceDao.getAllInvoices()
 
     suspend fun insert(invoice: Invoice) {
-        // Save to local database
         val localId = invoiceDao.insert(invoice)
-        
-        // Save to Firebase
         firebaseRepository.insert(invoice.copy(id = localId))
     }
 
     suspend fun update(invoice: Invoice) {
-        // Update local database
         invoiceDao.update(invoice)
-        
-        // Update Firebase
         firebaseRepository.update(invoice)
     }
 
     suspend fun delete(invoice: Invoice) {
-        // Delete from local database
         invoiceDao.delete(invoice)
-        
-        // Delete from Firebase
         firebaseRepository.delete(invoice)
     }
 
@@ -41,11 +34,25 @@ class InvoiceRepository @Inject constructor(
         return invoiceDao.getInvoiceById(id)
     }
 
-    fun getLastPrintedInvoice(): Invoice? {
-        return firebaseRepository.getLastPrintedInvoice()
+    suspend fun getLastInvoiceNumber(): Int {
+        val lastInvoice = invoiceDao.getLastInvoice()
+        return lastInvoice?.invoiceNumber ?: 0
     }
 
-    suspend fun getLastInvoice(): Invoice? {
-        return firebaseRepository.getLastInvoice()
+    fun getInvoicesForCustomer(customerId: String): Flow<List<Invoice>> {
+        return invoiceDao.getInvoicesForCustomer(customerId)
+    }
+
+    suspend fun getAllInvoicesList(): List<Invoice> {
+        return allInvoices.first()
+    }
+
+    suspend fun updateCustomerInfo(invoiceId: Long, customer: Customer) {
+        invoiceDao.updateCustomerInfo(
+            invoiceId = invoiceId,
+            customerId = customer.id,
+            customerName = customer.name,
+            customerPhone = customer.phoneNumber
+        )
     }
 }

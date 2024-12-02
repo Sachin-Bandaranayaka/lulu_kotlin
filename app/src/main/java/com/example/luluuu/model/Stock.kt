@@ -5,6 +5,7 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.Exclude
+import com.example.luluuu.model.ProductCategory
 
 @Entity(tableName = "stocks")
 data class Stock(
@@ -18,5 +19,6 @@ data class Stock(
     var name: String = "",
     var price: Double = 0.0,
     var quantity: Int = 0,
-    var description: String = ""
-) 
+    var description: String = "",
+    var category: ProductCategory = ProductCategory.SOAP_BAR
+)

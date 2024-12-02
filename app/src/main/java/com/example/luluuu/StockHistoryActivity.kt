@@ -3,12 +3,10 @@ package com.example.luluuu
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.luluuu.adapter.StockHistoryAdapter
 import com.example.luluuu.databinding.ActivityStockHistoryBinding
 import com.example.luluuu.viewmodel.StockHistoryViewModel
-import kotlinx.coroutines.launch
 
 class StockHistoryActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStockHistoryBinding
@@ -41,9 +39,18 @@ class StockHistoryActivity : AppCompatActivity() {
     }
 
     private fun observeStockHistory(stockId: Long) {
-        lifecycleScope.launch {
-            viewModel.getStockHistory(stockId).collect { history ->
-                adapter.submitList(history)
+        // Load stock history
+        viewModel.loadStockHistory(stockId)
+
+        // Observe stock history changes
+        viewModel.stockHistory.observe(this) { historyList ->
+            if (historyList.isEmpty()) {
+                binding.textViewNoHistory?.visibility = android.view.View.VISIBLE
+                binding.historyRecyclerView.visibility = android.view.View.GONE
+            } else {
+                binding.textViewNoHistory?.visibility = android.view.View.GONE
+                binding.historyRecyclerView.visibility = android.view.View.VISIBLE
+                adapter.submitList(historyList)
             }
         }
     }
@@ -52,4 +59,4 @@ class StockHistoryActivity : AppCompatActivity() {
         onBackPressed()
         return true
     }
-} 
+}

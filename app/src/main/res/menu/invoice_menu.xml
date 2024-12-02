@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_view_history"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="@string/view_history"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_edit_last_invoice"
         android:icon="@android:drawable/ic_menu_edit"
         android:title="@string/edit_last_invoice"

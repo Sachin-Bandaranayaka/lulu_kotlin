@@ -19,36 +19,44 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/dateTextView"
+                android:id="@+id/tvInvoiceNumber"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <TextView
+                android:id="@+id/tvCustomerName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceBody1" />
 
             <TextView
-                android:id="@+id/itemCountTextView"
+                android:id="@+id/tvDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceBody2" />
 
             <TextView
-                android:id="@+id/totalTextView"
+                android:id="@+id/tvTotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textAppearance="?attr/textAppearanceHeadline6" />
+                android:textAppearance="?attr/textAppearanceHeadline6"
+                android:textColor="?attr/colorPrimary" />
 
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/deleteButton"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDelete"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginStart="8dp"
             android:contentDescription="@string/delete_invoice"
-            android:padding="8dp"
-            android:src="@android:drawable/ic_menu_delete" />
+            app:icon="@android:drawable/ic_menu_delete" />
 
     </LinearLayout>
 

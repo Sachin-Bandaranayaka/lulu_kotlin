@@ -36,7 +36,9 @@ import com.example.luluuu.repository.FirebaseRepository
 import com.example.luluuu.model.Stock
 import com.example.luluuu.viewmodel.StockViewModel
 import kotlinx.coroutines.flow.collectLatest
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
@@ -289,6 +291,10 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
             throw e
         }
+    }
+
+    fun getBluetoothSocket(): BluetoothSocket? {
+        return bluetoothSocket
     }
 
     companion object {

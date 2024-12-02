@@ -2,97 +2,90 @@ package com.example.luluuu.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.example.luluuu.databinding.ItemStockBinding
+import com.example.luluuu.databinding.ItemInvoiceProductBinding
+import com.example.luluuu.model.InvoiceItem
 import com.example.luluuu.model.Stock
 import java.text.NumberFormat
 import java.util.Locale
 
 class StockAdapter(
-    private val onStockClick: (Stock) -> Unit,
-    private val onEditClick: (Stock) -> Unit,
-    private val onDeleteClick: (Stock) -> Unit
-) : RecyclerView.Adapter<StockAdapter.StockViewHolder>() {
+    private val items: MutableList<InvoiceItem>,
+    private val onItemChanged: () -> Unit,
+    private val onRemoveItem: (Int) -> Unit,
+    private val onStockClick: (Stock) -> Unit
+) : RecyclerView.Adapter<StockAdapter.ViewHolder>() {
 
-    private var stocks = listOf<Stock>()
+    var availableStocks: List<Stock> = emptyList()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
 
-    fun submitList(newStocks: List<Stock>) {
-        val oldList = stocks
-        stocks = newStocks
-        DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-            override fun getOldListSize() = oldList.size
-            override fun getNewListSize() = newStocks.size
-            override fun areItemsTheSame(oldPos: Int, newPos: Int) = 
-                oldList[oldPos].id == newStocks[newPos].id
-            override fun areContentsTheSame(oldPos: Int, newPos: Int) = 
-                oldList[oldPos] == newStocks[newPos]
-        }).dispatchUpdatesTo(this)
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StockViewHolder {
-        val binding = ItemStockBinding.inflate(
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemInvoiceProductBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
         )
-        return StockViewHolder(binding)
+        return ViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: StockViewHolder, position: Int) {
-        holder.bind(stocks[position])
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
     }
 
-    override fun getItemCount(): Int = stocks.size
+    override fun getItemCount(): Int = items.size
 
-    inner class StockViewHolder(
-        private val binding: ItemStockBinding
+    inner class ViewHolder(
+        private val binding: ItemInvoiceProductBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        
         private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "LK"))
 
         init {
-            binding.apply {
-                editButton.setOnClickListener {
-                    val position = adapterPosition
-                    if (position != RecyclerView.NO_POSITION) {
-                        onEditClick(stocks[position])
-                    }
+            binding.removeButton.setOnClickListener {
+                val position = adapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onRemoveItem(position)
                 }
+            }
 
-                deleteButton.setOnClickListener {
+            binding.quantityEditText.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) {
                     val position = adapterPosition
                     if (position != RecyclerView.NO_POSITION) {
-                        onDeleteClick(stocks[position])
-                    }
-                }
-
-                historyButton.setOnClickListener {
-                    val position = adapterPosition
-                    if (position != RecyclerView.NO_POSITION) {
-                        onStockClick(stocks[position])
+                        val currentItem = items[position]
+                        val newQuantity = binding.quantityEditText.text.toString().toIntOrNull() ?: 0
+                        if (newQuantity != currentItem.quantity) {
+                            val stock = availableStocks.find { it.name == currentItem.productName }
+                            if (stock != null && stock.quantity >= newQuantity) {
+                                // Create a new item with updated values
+                                val updatedItem = currentItem.copy(
+                                    quantity = newQuantity,
+                                    total = currentItem.price * newQuantity
+                                )
+                                items[position] = updatedItem
+                                onItemChanged()
+                                notifyItemChanged(position)
+                            }
+                        }
                     }
                 }
             }
         }
 
-        fun bind(stock: Stock) {
+        fun bind(item: InvoiceItem) {
             binding.apply {
-                stockNameTextView.text = stock.name
-                stockPriceTextView.text = currencyFormat.format(stock.price)
+                productNameTextView.text = item.productName
+                quantityEditText.setText(item.quantity.toString())
+                priceTextView.text = currencyFormat.format(item.price)
                     .replace("LKR", "Rs.")
-                stockQuantityTextView.text = "Quantity: ${stock.quantity}"
-                stockDescriptionTextView.text = stock.description
+                totalTextView.text = currencyFormat.format(item.total)
+                    .replace("LKR", "Rs.")
 
-                // Change background color if stock is low
-                root.setBackgroundResource(
-                    if (stock.quantity <= 5) {
-                        com.google.android.material.R.color.design_default_color_error
-                    } else {
-                        android.R.color.transparent
-                    }
-                )
+                val stock = availableStocks.find { it.name == item.productName }
+                availableQuantityTextView.text = "Available: ${stock?.quantity ?: 0}"
             }
         }
     }
-} 
+}

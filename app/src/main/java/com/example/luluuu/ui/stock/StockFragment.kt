@@ -7,25 +7,29 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.luluuu.R
-import com.example.luluuu.adapter.StockAdapter
-import com.example.luluuu.databinding.FragmentStockBinding
 import com.example.luluuu.databinding.DialogStockEditBinding
+import com.example.luluuu.databinding.FragmentStockBinding
+import com.example.luluuu.model.ProductCategory
 import com.example.luluuu.model.Stock
+import com.example.luluuu.ui.stock.StockAdapter
 import com.example.luluuu.viewmodel.StockViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
-import java.util.*
+import java.util.Locale
 
 class StockFragment : Fragment() {
     private var _binding: FragmentStockBinding? = null
@@ -33,7 +37,7 @@ class StockFragment : Fragment() {
     private val viewModel: StockViewModel by viewModels()
     private lateinit var stockAdapter: StockAdapter
     private var searchJob: Job? = null
-    private lateinit var searchView: SearchView
+    private lateinit var searchView: androidx.appcompat.widget.SearchView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,39 +57,46 @@ class StockFragment : Fragment() {
         observeStocks()
         observeLowStockItems()
         observeTotalValue()
+        
+        // Add menu items without using the Fragment Menu APIs
+        val menuHost = requireActivity()
+        menuHost.addMenuProvider(object : MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                menuInflater.inflate(R.menu.menu_stock_sort, menu)
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                return when (menuItem.itemId) {
+                    R.id.sort_name -> {
+                        viewModel.setSortOrder(StockViewModel.SortOrder.NAME_ASC)
+                        true
+                    }
+                    R.id.sort_price -> {
+                        viewModel.setSortOrder(StockViewModel.SortOrder.PRICE_ASC)
+                        true
+                    }
+                    R.id.sort_quantity -> {
+                        viewModel.setSortOrder(StockViewModel.SortOrder.QUANTITY_ASC)
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_stock_sort, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.sort_name -> {
-                viewModel.setSortOrder(StockViewModel.SortOrder.NAME)
-                true
-            }
-            R.id.sort_price -> {
-                viewModel.setSortOrder(StockViewModel.SortOrder.PRICE)
-                true
-            }
-            R.id.sort_quantity -> {
-                viewModel.setSortOrder(StockViewModel.SortOrder.QUANTITY)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
     }
 
     private fun setupRecyclerView() {
         stockAdapter = StockAdapter(
             onStockClick = { stock ->
+                showEditDialog(stock)
+            },
+            onStockLongClick = { stock ->
                 showStockHistory(stock)
+                true
             },
             onEditClick = { stock ->
                 showEditDialog(stock)
@@ -96,7 +107,7 @@ class StockFragment : Fragment() {
         )
 
         binding.stockRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = LinearLayoutManager(requireContext())
             adapter = stockAdapter
         }
 
@@ -109,7 +120,7 @@ class StockFragment : Fragment() {
     }
 
     private fun setupSearchView() {
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+        binding.searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean = false
 
             override fun onQueryTextChange(newText: String?): Boolean {
@@ -162,14 +173,22 @@ class StockFragment : Fragment() {
     private fun showEditDialog(stock: Stock? = null) {
         val binding = DialogStockEditBinding.inflate(layoutInflater)
         val isNewStock = stock == null
-        
+
+        // Setup category spinner
+        val categories = ProductCategory.values().map { it.toString() }
+        val adapter = ArrayAdapter(requireContext(), R.layout.item_dropdown, categories)
+        binding.categorySpinner.setAdapter(adapter)
+
         if (!isNewStock) {
             binding.apply {
                 nameEditText.setText(stock?.name)
                 priceEditText.setText(stock?.price.toString())
                 quantityEditText.setText(stock?.quantity.toString())
                 descriptionEditText.setText(stock?.description)
+                categorySpinner.setText(stock?.category.toString(), false)
             }
+        } else {
+            binding.categorySpinner.setText(categories[0], false)
         }
 
         MaterialAlertDialogBuilder(requireContext())
@@ -180,6 +199,7 @@ class StockFragment : Fragment() {
                 val price = binding.priceEditText.text.toString().toDoubleOrNull() ?: 0.0
                 val quantity = binding.quantityEditText.text.toString().toIntOrNull() ?: 0
                 val description = binding.descriptionEditText.text.toString()
+                val category = ProductCategory.fromString(binding.categorySpinner.text.toString())
 
                 if (name.isBlank()) {
                     Toast.makeText(context, getString(R.string.invalid_input), Toast.LENGTH_SHORT).show()
@@ -187,14 +207,22 @@ class StockFragment : Fragment() {
                 }
 
                 if (isNewStock) {
-                    viewModel.insert(Stock(name = name, price = price, quantity = quantity, description = description))
+                    viewModel.insert(Stock(
+                        name = name,
+                        price = price,
+                        quantity = quantity,
+                        description = description,
+                        category = category
+                    ))
                 } else {
                     stock?.let { existingStock ->
                         val updatedStock = existingStock.copy(
                             name = name,
                             price = price,
                             quantity = quantity,
-                            description = description
+                            description = description,
+                            category = category,
+                            firebaseId = existingStock.firebaseId  // Preserve Firebase ID
                         )
                         viewModel.update(updatedStock)
                     }
@@ -233,9 +261,9 @@ class StockFragment : Fragment() {
     }
 
     private fun showStockHistory(stock: Stock) {
-        StockHistoryDialog(stock).show(
+        StockHistoryDialog(stock.id).show(
             childFragmentManager,
-            "stock_history"
+            "StockHistoryDialog"
         )
     }
 
@@ -243,4 +271,4 @@ class StockFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-} 
+}

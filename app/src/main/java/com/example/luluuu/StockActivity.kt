@@ -9,7 +9,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.luluuu.adapter.StockAdapter
+import com.example.luluuu.adapter.StockListAdapter
 import com.example.luluuu.databinding.ActivityStockBinding
 import com.example.luluuu.databinding.DialogStockEditBinding
 import com.example.luluuu.model.Stock
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 class StockActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStockBinding
     private val viewModel: StockViewModel by viewModels()
-    private lateinit var stockAdapter: StockAdapter
+    private lateinit var stockAdapter: StockListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,19 +38,13 @@ class StockActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        stockAdapter = StockAdapter(
+        stockAdapter = StockListAdapter(
             onStockClick = { stock ->
-                startHistoryActivity(stock)
-            },
-            onEditClick = { stock ->
                 showStockDialog(stock)
-            },
-            onDeleteClick = { stock ->
-                showDeleteConfirmationDialog(stock)
             }
         )
 
-        binding.stockRecyclerView.apply {
+        binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(this@StockActivity)
             adapter = stockAdapter
         }

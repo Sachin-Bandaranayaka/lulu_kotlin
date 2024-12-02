@@ -7,7 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.luluuu.databinding.ItemInvoiceHistoryBinding
 import com.example.luluuu.model.Invoice
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -17,7 +16,6 @@ class InvoiceHistoryAdapter(
 ) : ListAdapter<Invoice, InvoiceHistoryAdapter.ViewHolder>(InvoiceDiffCallback()) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("si", "LK"))
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
@@ -45,7 +43,7 @@ class InvoiceHistoryAdapter(
                 }
             }
 
-            binding.deleteButton.setOnClickListener {
+            binding.btnDelete.setOnClickListener {
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onDeleteClick(getItem(position))
@@ -55,10 +53,10 @@ class InvoiceHistoryAdapter(
 
         fun bind(invoice: Invoice) {
             binding.apply {
-                dateTextView.text = dateFormat.format(invoice.date)
-                itemCountTextView.text = "${invoice.items.size} items"
-                totalTextView.text = currencyFormat.format(invoice.total)
-                    .replace("LKR", "Rs.")
+                tvInvoiceNumber.text = invoice.invoiceNumber.toString()
+                tvCustomerName.text = invoice.customerName
+                tvDate.text = dateFormat.format(invoice.date)
+                tvTotal.text = String.format("Rs. %.2f", invoice.total)
             }
         }
     }

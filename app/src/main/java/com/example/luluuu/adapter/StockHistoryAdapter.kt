@@ -10,7 +10,9 @@ import com.example.luluuu.model.StockHistory
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class StockHistoryAdapter : ListAdapter<StockHistory, StockHistoryAdapter.ViewHolder>(StockHistoryDiffCallback()) {
+class StockHistoryAdapter : ListAdapter<StockHistory, StockHistoryAdapter.ViewHolder>(DiffCallback()) {
+
+    private val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemStockHistoryBinding.inflate(
@@ -22,23 +24,42 @@ class StockHistoryAdapter : ListAdapter<StockHistory, StockHistoryAdapter.ViewHo
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val history = getItem(position)
+        holder.bind(history)
     }
 
-    class ViewHolder(private val binding: ItemStockHistoryBinding) : RecyclerView.ViewHolder(binding.root) {
-        private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+    inner class ViewHolder(private val binding: ItemStockHistoryBinding) :
+        RecyclerView.ViewHolder(binding.root) {
 
         fun bind(history: StockHistory) {
             binding.apply {
-                dateTextView.text = dateFormat.format(history.date)
-                actionTextView.text = history.action
-                quantityTextView.text = "Quantity: ${history.oldQuantity} → ${history.newQuantity}"
-                priceTextView.text = "Price: ${history.oldPrice} → ${history.newPrice}"
+                textViewDate.text = dateFormat.format(history.date)
+                textViewAction.text = history.action
+                
+                when (history.action) {
+                    "CREATE" -> {
+                        textViewQuantityChange.text = "Initial quantity: ${history.newQuantity}"
+                        textViewPriceChange.text = "Initial price: $${String.format("%.2f", history.newPrice)}"
+                    }
+                    "UPDATE" -> {
+                        val quantityDiff = history.newQuantity - history.oldQuantity
+                        val quantitySign = if (quantityDiff >= 0) "+" else ""
+                        textViewQuantityChange.text = "Quantity: ${history.oldQuantity} → ${history.newQuantity} ($quantitySign$quantityDiff)"
+
+                        val priceDiff = history.newPrice - history.oldPrice
+                        val priceSign = if (priceDiff >= 0) "+" else ""
+                        textViewPriceChange.text = "Price: $${String.format("%.2f", history.oldPrice)} → $${String.format("%.2f", history.newPrice)} ($priceSign$${String.format("%.2f", priceDiff)})"
+                    }
+                    "DELETE" -> {
+                        textViewQuantityChange.text = "Final quantity: ${history.oldQuantity}"
+                        textViewPriceChange.text = "Final price: $${String.format("%.2f", history.oldPrice)}"
+                    }
+                }
             }
         }
     }
 
-    private class StockHistoryDiffCallback : DiffUtil.ItemCallback<StockHistory>() {
+    private class DiffCallback : DiffUtil.ItemCallback<StockHistory>() {
         override fun areItemsTheSame(oldItem: StockHistory, newItem: StockHistory): Boolean {
             return oldItem.id == newItem.id
         }
@@ -47,4 +68,4 @@ class StockHistoryAdapter : ListAdapter<StockHistory, StockHistoryAdapter.ViewHo
             return oldItem == newItem
         }
     }
-} 
+}
