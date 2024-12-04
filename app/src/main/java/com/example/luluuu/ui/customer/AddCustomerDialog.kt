@@ -70,6 +70,16 @@ class AddCustomerDialog : DialogFragment() {
         _binding = null
     }
 
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.apply {
+            setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
     companion object {
         const val TAG = "AddCustomerDialog"
     }

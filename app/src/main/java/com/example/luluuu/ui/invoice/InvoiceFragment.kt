@@ -43,6 +43,7 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 import android.widget.AutoCompleteTextView
+import com.google.android.material.textfield.TextInputLayout
 
 class InvoiceFragment : Fragment() {
     private var _binding: FragmentInvoiceBinding? = null
@@ -106,27 +107,36 @@ class InvoiceFragment : Fragment() {
     }
 
     private fun setupCustomerAutocomplete() {
+        // Setup search icon click listener
+        binding.customerNameLayout.setEndIconOnClickListener {
+            showCustomerSearchDialog()
+        }
+
+        // Setup autocomplete
         viewLifecycleOwner.lifecycleScope.launch {
             customerViewModel.getAllCustomers().collect { customers ->
                 val adapter = ArrayAdapter(
                     requireContext(),
                     android.R.layout.simple_dropdown_item_1line,
-                    customers.map { it.name }
+                    customers.map { "${it.name} (${it.phoneNumber})" }
                 )
                 (binding.customerNameEditText as AutoCompleteTextView).setAdapter(adapter)
             }
         }
 
         binding.customerNameEditText.setOnItemClickListener { _, _, position, _ ->
-            val selectedName = (binding.customerNameEditText as AutoCompleteTextView).adapter.getItem(position) as String
+            val selectedText = (binding.customerNameEditText as AutoCompleteTextView).adapter.getItem(position) as String
+            val name = selectedText.substringBefore(" (")
             viewLifecycleOwner.lifecycleScope.launch {
-                customerViewModel.getCustomerByName(selectedName)?.let { customer ->
+                customerViewModel.getCustomerByName(name)?.let { customer ->
                     selectedCustomer = customer
+                    binding.customerNameEditText.setText(customer.name)
                     binding.customerMobileEditText.setText(customer.phoneNumber)
                 }
             }
         }
 
+        // Keep existing TextWatcher
         binding.customerNameEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -595,6 +605,14 @@ class InvoiceFragment : Fragment() {
         selectedItems.removeAt(position)
         stockAdapter.notifyItemRemoved(position)
         updateTotalAmount()
+    }
+
+    private fun showCustomerSearchDialog() {
+        CustomerSearchDialog { customer ->
+            selectedCustomer = customer
+            binding.customerNameEditText.setText(customer.name)
+            binding.customerMobileEditText.setText(customer.phoneNumber)
+        }.show(childFragmentManager, "CustomerSearchDialog")
     }
 
     private companion object {

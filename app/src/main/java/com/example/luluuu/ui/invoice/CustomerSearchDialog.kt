@@ -17,6 +17,7 @@ import com.example.luluuu.viewmodel.CustomerViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.example.luluuu.ui.customer.AddCustomerDialog
 
 @AndroidEntryPoint
 class CustomerSearchDialog(
@@ -40,6 +41,7 @@ class CustomerSearchDialog(
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         setupSearch()
+        setupAddCustomerButton()
         observeCustomers()
     }
 
@@ -48,7 +50,7 @@ class CustomerSearchDialog(
             onCustomerSelected(customer)
             dismiss()
         }
-        binding.customerList.apply {
+        binding.customersRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@CustomerSearchDialog.adapter
         }
@@ -64,6 +66,12 @@ class CustomerSearchDialog(
         })
     }
 
+    private fun setupAddCustomerButton() {
+        binding.addCustomerFab.setOnClickListener {
+            AddCustomerDialog().show(parentFragmentManager, "AddCustomerDialog")
+        }
+    }
+
     private fun observeCustomers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.searchResults.collectLatest { customers ->
@@ -75,5 +83,15 @@ class CustomerSearchDialog(
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.apply {
+            setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
     }
 }
