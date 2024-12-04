@@ -26,14 +26,96 @@ class CustomerViewModel(application: Application) : AndroidViewModel(application
     private val _syncStatus = MutableStateFlow<String?>(null)
     val syncStatus: StateFlow<String?> = _syncStatus
 
+    init {
+        // Initialize real-time listener
+        setupFirestoreListener()
+    }
+
+    private fun setupFirestoreListener() {
+        viewModelScope.launch {
+            try {
+                customersCollection.addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("CustomerViewModel", "Error listening to customers", error)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        viewModelScope.launch {
+                            try {
+                                val customers = snapshot.documents.mapNotNull { doc ->
+                                    try {
+                                        doc.toObject(Customer::class.java)?.apply {
+                                            id = doc.id // Ensure ID is set
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("CustomerViewModel", "Error parsing customer doc", e)
+                                        null
+                                    }
+                                }
+                                // Update Room database
+                                customers.forEach { customer ->
+                                    customerDao.insert(customer)
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CustomerViewModel", "Error processing customers snapshot", e)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CustomerViewModel", "Error setting up Firestore listener", e)
+            }
+        }
+    }
+
     fun getAllCustomers() = customerDao.getAllCustomers()
 
     suspend fun getCustomerByName(name: String) = customerDao.getCustomerByName(name)
 
     fun searchCustomers(query: String) {
         viewModelScope.launch {
-            customerDao.searchCustomers(query).collectLatest {
-                _searchResults.value = it
+            try {
+                // Search both local and Firestore
+                val localResults = customerDao.searchCustomers(query)
+                
+                // Combine with Firestore search
+                customersCollection
+                    .whereGreaterThanOrEqualTo("name", query)
+                    .whereLessThanOrEqualTo("name", query + "\uf8ff")
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        viewModelScope.launch {
+                            try {
+                                val firebaseResults = snapshot.documents.mapNotNull { doc ->
+                                    doc.toObject(Customer::class.java)?.apply {
+                                        id = doc.id
+                                    }
+                                }
+                                
+                                // Combine and deduplicate results
+                                localResults.collectLatest { localCustomers ->
+                                    val combined = (localCustomers + firebaseResults)
+                                        .distinctBy { it.id }
+                                        .sortedBy { it.name }
+                                    _searchResults.value = combined
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CustomerViewModel", "Error processing search results", e)
+                            }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("CustomerViewModel", "Error searching Firestore", e)
+                        // Fall back to local results only
+                        viewModelScope.launch {
+                            localResults.collectLatest {
+                                _searchResults.value = it
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.e("CustomerViewModel", "Error in searchCustomers", e)
             }
         }
     }

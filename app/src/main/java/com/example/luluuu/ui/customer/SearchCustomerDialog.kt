@@ -13,6 +13,8 @@ import com.example.luluuu.adapter.CustomerAdapter
 import com.example.luluuu.databinding.DialogSearchCustomerBinding
 import com.example.luluuu.model.Customer
 import com.example.luluuu.viewmodel.CustomerViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -56,8 +58,14 @@ class SearchCustomerDialog(
     }
 
     private fun setupSearchInput() {
+        var searchJob: Job? = null
+        
         binding.searchEditText.doAfterTextChanged { text ->
-            viewModel.searchCustomers(text?.toString() ?: "")
+            searchJob?.cancel()
+            searchJob = lifecycleScope.launch {
+                delay(300) // Debounce typing
+                viewModel.searchCustomers(text?.toString() ?: "")
+            }
         }
     }
 
@@ -71,15 +79,9 @@ class SearchCustomerDialog(
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.searchResults.collectLatest { customers ->
                 adapter.submitList(customers)
-                updateEmptyState(customers.isEmpty())
+                binding.noResultsText.visibility = if (customers.isEmpty()) View.VISIBLE else View.GONE
+                binding.customersRecyclerView.visibility = if (customers.isEmpty()) View.GONE else View.VISIBLE
             }
-        }
-    }
-
-    private fun updateEmptyState(isEmpty: Boolean) {
-        binding.apply {
-            noResultsText.visibility = if (isEmpty) View.VISIBLE else View.GONE
-            customersRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
         }
     }
 
