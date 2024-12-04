@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.luluuu.db.AppDatabase
 import com.example.luluuu.model.Invoice
+import com.example.luluuu.model.InvoiceItem
 import com.example.luluuu.model.Customer
 import com.example.luluuu.repository.InvoiceRepository
 import com.example.luluuu.repository.InvoiceFirebaseRepository
@@ -129,5 +130,33 @@ class InvoiceViewModel(application: Application) : AndroidViewModel(application)
             _error.value = e.message ?: "Error getting last invoice"
             null
         }
+    }
+
+    private fun calculateInvoiceTotal(items: List<InvoiceItem>): Double {
+        return items.sumOf { item ->
+            if (!item.isFree) {
+                item.quantity * item.price
+            } else {
+                0.0
+            }
+        }
+    }
+
+    private fun calculateSubtotal(items: List<InvoiceItem>): Double {
+        return items.sumOf { item ->
+            if (!item.isFree) {
+                item.quantity * item.price
+            } else {
+                0.0
+            }
+        }
+    }
+
+    private fun calculateTax(subtotal: Double): Double {
+        return subtotal * TAX_RATE
+    }
+
+    companion object {
+        private const val TAX_RATE = 0.0  // 0% tax rate
     }
 }

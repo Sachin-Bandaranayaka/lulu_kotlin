@@ -451,10 +451,13 @@ class InvoiceFragment : Fragment() {
         val customerPhone = binding.customerMobileEditText.text.toString().trim()
         val currentDate = Date()
         
-        val subtotal = selectedItems.sumOf { it.quantity.toDouble() * it.price }
+        // Calculate subtotal only from non-free items
+        val subtotal = selectedItems
+            .filter { !it.isFree }
+            .sumOf { it.quantity.toDouble() * it.price }
+            
         val discount = binding.discountEditText.text.toString().toDoubleOrNull() ?: 0.0
         val returnAmount = binding.returnAmountEditText.text.toString().toDoubleOrNull() ?: 0.0
-        val returnDescription = binding.returnDescriptionEditText.text.toString().trim()
         val total = subtotal - discount - returnAmount
         
         return buildString {
@@ -470,24 +473,24 @@ class InvoiceFragment : Fragment() {
             appendLine("-------------------")
             
             // Regular items
-            val regularItems = selectedItems.filterNot { it.isFree }
-            regularItems.forEach { item ->
+            appendLine("Items:")
+            appendLine("-------------------")
+            selectedItems.filterNot { it.isFree }.forEach { item ->
                 appendLine("${item.productName}")
                 appendLine("${item.quantity} x Rs. %.2f = Rs. %.2f".format(item.price, item.quantity * item.price))
             }
             
-            // Free items
+            // Free items section
             val freeItems = selectedItems.filter { it.isFree }
             if (freeItems.isNotEmpty()) {
-                appendLine("")
-                appendLine("Free Items:")
+                appendLine("\nFree Items:")
                 appendLine("-------------------")
                 freeItems.forEach { item ->
-                    appendLine("${item.productName}")
-                    appendLine("Quantity: ${item.quantity} (Free)")
+                    appendLine("${item.productName}: ${item.quantity}")
                 }
             }
             
+            appendLine("\nSummary:")
             appendLine("-------------------")
             appendLine("Subtotal: Rs. %.2f".format(subtotal))
             
@@ -497,8 +500,8 @@ class InvoiceFragment : Fragment() {
             
             if (returnAmount > 0) {
                 appendLine("Return Amount: Rs. %.2f".format(returnAmount))
-                if (returnDescription.isNotEmpty()) {
-                    appendLine("Return Description: $returnDescription")
+                if (binding.returnDescriptionEditText.text?.isNotEmpty() == true) {
+                    appendLine("Return Description: ${binding.returnDescriptionEditText.text}")
                 }
             }
             
@@ -509,12 +512,28 @@ class InvoiceFragment : Fragment() {
     }
 
     private fun updateTotalAmount() {
-        val subtotal = selectedItems.sumOf { it.quantity.toDouble() * it.price }
+        // Calculate subtotal only from non-free items
+        val subtotal = selectedItems
+            .filter { !it.isFree }
+            .sumOf { it.quantity.toDouble() * it.price }
+            
         val discount = binding.discountEditText.text.toString().toDoubleOrNull() ?: 0.0
         val returnAmount = binding.returnAmountEditText.text.toString().toDoubleOrNull() ?: 0.0
         val total = subtotal - discount - returnAmount
         
+        // Update the UI
         binding.totalAmountTextView.text = String.format("Subtotal: Rs. %.2f", subtotal)
+        
+        // Show free items summary
+        val freeItems = selectedItems.filter { it.isFree }
+        if (freeItems.isNotEmpty()) {
+            val freeItemsSummary = freeItems
+                .joinToString("\n") { "${it.productName}: ${it.quantity}" }
+            binding.freeItemsTextView.text = "Free Items:\n$freeItemsSummary"
+            binding.freeItemsTextView.visibility = View.VISIBLE
+        } else {
+            binding.freeItemsTextView.visibility = View.GONE
+        }
         
         val deductions = mutableListOf<String>()
         if (discount > 0) deductions.add("Rs. %.2f discount".format(discount))
@@ -617,5 +636,28 @@ class InvoiceFragment : Fragment() {
 
     private companion object {
         private const val TAG = "InvoiceFragment"
+    }
+
+    private fun updateInvoiceSummary(items: List<InvoiceItem>) {
+        binding.apply {
+            // Show free items separately
+            val freeItems = items.filter { it.isFree }
+            val freeItemsSummary = if (freeItems.isNotEmpty()) {
+                freeItems.joinToString("\n") { "${it.productName}: ${it.quantity}" }
+            } else {
+                "No free items"
+            }
+            
+            // Update the free items section
+            freeItemsTextView.text = "Free Items:\n$freeItemsSummary"
+            freeItemsTextView.visibility = if (freeItems.isNotEmpty()) View.VISIBLE else View.GONE
+
+            // Regular items total (excluding free items)
+            val regularItems = items.filter { !it.isFree }
+            val subtotal = regularItems.sumOf { it.quantity * it.price }
+            
+            // Update totals using existing totalAmountTextView
+            totalAmountTextView.text = String.format("Subtotal: Rs. %.2f", subtotal)
+        }
     }
 }
