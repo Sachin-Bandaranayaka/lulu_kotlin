@@ -56,7 +56,7 @@ class LuluuuApplication : Application() {
                 
                 // Configure Firestore settings with offline persistence
                 val settings = FirebaseFirestoreSettings.Builder()
-                    .setPersistenceEnabled(true)
+                    .setPersistenceEnabled(true)  // This will be removed in a future release but is still supported
                     .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
                     .build()
                 

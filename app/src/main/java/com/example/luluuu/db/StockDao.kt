@@ -15,6 +15,9 @@ interface StockDao {
     @Insert
     suspend fun insert(stock: Stock): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(stocks: List<Stock>)
+
     @Update
     suspend fun update(stock: Stock)
 
@@ -29,4 +32,7 @@ interface StockDao {
 
     @Query("UPDATE stocks SET firebaseId = :firebaseId WHERE id = :localId")
     suspend fun updateFirebaseId(localId: Long, firebaseId: String)
+
+    @Query("DELETE FROM stocks")
+    suspend fun clearCache()
 }

@@ -43,19 +43,41 @@ class CustomerViewModel(application: Application) : AndroidViewModel(application
                     if (snapshot != null) {
                         viewModelScope.launch {
                             try {
+                                // Get all current Firestore customer IDs
+                                val firestoreIds = snapshot.documents.mapNotNull { it.id }.toSet()
+                                
+                                // Get all local customer IDs
+                                val localCustomers = customerDao.getAllCustomersSync()
+                                val localIds = localCustomers.map { it.id }.toSet()
+                                
+                                // Delete customers that exist locally but not in Firestore
+                                val idsToDelete = localIds - firestoreIds
+                                idsToDelete.forEach { id ->
+                                    customerDao.deleteById(id)
+                                    Log.d("CustomerViewModel", "Deleted local customer with id: $id")
+                                }
+
+                                // Update or insert customers from Firestore
                                 val customers = snapshot.documents.mapNotNull { doc ->
                                     try {
                                         doc.toObject(Customer::class.java)?.apply {
-                                            id = doc.id // Ensure ID is set
+                                            id = doc.id
                                         }
                                     } catch (e: Exception) {
                                         Log.e("CustomerViewModel", "Error parsing customer doc", e)
                                         null
                                     }
                                 }
-                                // Update Room database
-                                customers.forEach { customer ->
-                                    customerDao.insert(customer)
+                                
+                                // If Firestore is empty, clear local database
+                                if (customers.isEmpty() && snapshot.documents.isEmpty()) {
+                                    customerDao.deleteAll()
+                                    Log.d("CustomerViewModel", "Cleared all local customers as Firestore is empty")
+                                } else {
+                                    // Update Room database
+                                    customers.forEach { customer ->
+                                        customerDao.insert(customer)
+                                    }
                                 }
                             } catch (e: Exception) {
                                 Log.e("CustomerViewModel", "Error processing customers snapshot", e)
@@ -92,7 +114,7 @@ class CustomerViewModel(application: Application) : AndroidViewModel(application
                                         id = doc.id
                                     }
                                 }
-                                
+                                 
                                 // Combine and deduplicate results
                                 localResults.collectLatest { localCustomers ->
                                     val combined = (localCustomers + firebaseResults)
@@ -169,7 +191,7 @@ class CustomerViewModel(application: Application) : AndroidViewModel(application
                             try {
                                 Log.d("CustomerViewModel", "Retrieved ${documents.size()} customers from Firestore")
                                 var syncedCount = 0
-                                
+                                 
                                 for (document in documents) {
                                     try {
                                         val customer = document.toObject(Customer::class.java)
@@ -180,7 +202,7 @@ class CustomerViewModel(application: Application) : AndroidViewModel(application
                                         Log.e("CustomerViewModel", "Error syncing customer ${document.id}", e)
                                     }
                                 }
-                                
+                                 
                                 _syncStatus.value = "Synced $syncedCount customers"
                                 Log.d("CustomerViewModel", "Sync completed. Synced $syncedCount customers")
                             } catch (e: Exception) {

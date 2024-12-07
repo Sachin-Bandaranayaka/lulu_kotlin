@@ -10,9 +10,10 @@ import com.example.luluuu.db.StockHistoryDao
 import com.example.luluuu.model.Stock
 import com.example.luluuu.model.StockHistory
 import com.example.luluuu.model.ProductCategory
+import com.example.luluuu.repository.FirebaseRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.*
 
@@ -24,6 +25,7 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     private val firestore = FirebaseFirestore.getInstance()
     private val stocksCollection = firestore.collection("stocks")
     private val stockHistoryCollection = firestore.collection("stock_history")
+    private val firebaseRepository = FirebaseRepository(stockDao)
     
     init {
         Log.d(TAG, "Initializing StockViewModel")
@@ -172,6 +174,55 @@ class StockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun getStockById(id: Long) = stockDao.getStockById(id)
+
+    suspend fun refreshStocks() {
+        withContext(Dispatchers.IO) {
+            try {
+                // Clear local caches
+                stockDao.clearCache()
+                stockHistoryDao.clearCache()
+                
+                // Fetch fresh data from Firebase
+                val stocks = stocksCollection.get().await().documents.mapNotNull { doc ->
+                    doc.toObject(Stock::class.java)?.apply {
+                        firebaseId = doc.id  // Store the Firebase document ID
+                    }
+                }
+                
+                // Update local database
+                stockDao.insertAll(stocks)
+                
+                // Sync stock history
+                val historySnapshot = stockHistoryCollection.get().await()
+                historySnapshot.documents.forEach { doc ->
+                    try {
+                        val stockHistory = StockHistory(
+                            id = doc.id,
+                            stockId = (doc.get("stockId") as Number).toLong(),
+                            date = doc.getTimestamp("date")?.toDate() ?: Date(),
+                            oldQuantity = (doc.get("oldQuantity") as Number).toInt(),
+                            newQuantity = (doc.get("newQuantity") as Number).toInt(),
+                            oldPrice = (doc.get("oldPrice") as Number).toDouble(),
+                            newPrice = (doc.get("newPrice") as Number).toDouble(),
+                            action = doc.getString("action") ?: "",
+                            invoiceNumber = (doc.get("invoiceNumber") as? Number)?.toInt(),
+                            regularQuantity = (doc.get("regularQuantity") as? Number)?.toInt() ?: 0,
+                            freeQuantity = (doc.get("freeQuantity") as? Number)?.toInt() ?: 0,
+                            description = doc.getString("description") ?: ""
+                        )
+                        stockHistoryDao.insert(stockHistory)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing stock history document: ${doc.id}", e)
+                    }
+                }
+                
+                Log.d(TAG, "Successfully refreshed ${stocks.size} stocks and ${historySnapshot.size()} history records")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error refreshing stocks", e)
+                throw e
+            }
+        }
+    }
 
     fun update(stock: Stock) = viewModelScope.launch {
         try {

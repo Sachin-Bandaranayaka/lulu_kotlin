@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.luluuu.databinding.ActivityMainBinding
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
     private val firebaseRepository = FirebaseRepository()
+    private lateinit var stockViewModel: StockViewModel
 
     private val resolutionForResult = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -59,8 +61,52 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize Google Play Services first
+        stockViewModel = ViewModelProvider(this)[StockViewModel::class.java]
+
+        setupNavigation()
+        setupRefreshLayout()
         initializeGooglePlayServices()
+    }
+
+    private fun setupRefreshLayout() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            refreshData()
+        }
+
+        // Customize the refresh indicator colors
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            android.R.color.holo_blue_bright,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light,
+            android.R.color.holo_red_light
+        )
+    }
+
+    private fun refreshData() {
+        lifecycleScope.launch {
+            try {
+                // Refresh data from Firebase
+                stockViewModel.refreshStocks()
+                
+                // Show success message
+                Toast.makeText(this@MainActivity, "Data refreshed successfully", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                // Show error message
+                Toast.makeText(this@MainActivity, "Error refreshing data: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Error refreshing data", e)
+            } finally {
+                // Hide the refresh indicator
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+        }
+    }
+
+    private fun setupNavigation() {
+        // Setup Navigation
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        navController = navHostFragment.navController
+        binding.bottomNavView.setupWithNavController(navController)
     }
 
     private fun initializeGooglePlayServices() {
@@ -97,12 +143,6 @@ class MainActivity : AppCompatActivity() {
         if (!isNetworkAvailable()) {
             Toast.makeText(this, "No internet connection. Some features may not work.", Toast.LENGTH_LONG).show()
         }
-
-        // Setup Navigation
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController
-        binding.bottomNavView.setupWithNavController(navController)
 
         // Check and request permissions before connecting to printer
         checkBluetoothPermissions()

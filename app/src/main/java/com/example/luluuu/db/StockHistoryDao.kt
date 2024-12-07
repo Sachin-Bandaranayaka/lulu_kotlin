@@ -28,4 +28,7 @@ interface StockHistoryDao {
 
     @Query("DELETE FROM stock_history WHERE stockId = :stockId")
     suspend fun deleteHistoryForStock(stockId: Long)
-} 
+
+    @Query("DELETE FROM stock_history")
+    suspend fun clearCache()
+}

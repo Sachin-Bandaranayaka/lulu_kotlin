@@ -18,6 +18,15 @@ interface CustomerDao {
     @Query("SELECT * FROM customers WHERE name = :name LIMIT 1")
     suspend fun getCustomerByName(name: String): Customer?
 
+    @Query("SELECT * FROM customers")
+    suspend fun getAllCustomersSync(): List<Customer>
+
+    @Query("DELETE FROM customers WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM customers")
+    suspend fun deleteAll()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(customer: Customer)
 
